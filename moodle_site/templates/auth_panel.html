@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Welcome back | Moodle Lite</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0d1117;
+        --panel-bg: rgba(13, 17, 23, 0.75);
+        --card-bg: #161b22;
+        --accent: #3b82f6;
+        --accent-muted: rgba(59, 130, 246, 0.25);
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --error: #f87171;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(145deg, #0b1221, #101828);
+        color: var(--text);
+      }
+
+      .container {
+        width: min(960px, 95vw);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 32px;
+        align-items: stretch;
+      }
+
+      .hero {
+        position: relative;
+        padding: 40px;
+        background: linear-gradient(160deg, rgba(59, 130, 246, 0.18), rgba(17, 24, 39, 0.6));
+        border-radius: 28px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        overflow: hidden;
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        backdrop-filter: blur(18px);
+        pointer-events: none;
+      }
+
+      .hero-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        max-width: 320px;
+      }
+
+      .hero h1 {
+        font-size: clamp(1.75rem, 2.2vw, 2.4rem);
+        margin: 0;
+      }
+
+      .hero p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .hero-tiles {
+        position: absolute;
+        inset: 20px;
+        display: grid;
+        gap: 16px;
+        pointer-events: none;
+      }
+
+      .hero-tiles span {
+        background: rgba(59, 130, 246, 0.12);
+        backdrop-filter: blur(20px);
+        border-radius: 18px;
+        border: 1px solid rgba(59, 130, 246, 0.25);
+      }
+
+      .hero-tiles span:nth-child(1) {
+        width: 80px;
+        height: 80px;
+        margin-top: auto;
+        margin-left: auto;
+      }
+
+      .hero-tiles span:nth-child(2) {
+        width: 120px;
+        height: 120px;
+        margin-left: auto;
+      }
+
+      .panel {
+        position: relative;
+        padding: 40px 36px 36px;
+        border-radius: 28px;
+        background: var(--panel-bg);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        backdrop-filter: blur(22px);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.45);
+      }
+
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+
+      .brand-badge {
+        width: 46px;
+        height: 46px;
+        display: grid;
+        place-items: center;
+        background: rgba(59, 130, 246, 0.2);
+        border-radius: 14px;
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        font-weight: 600;
+        color: #bfdbfe;
+      }
+
+      .brand h2 {
+        margin: 0;
+        font-size: 1.4rem;
+        letter-spacing: -0.01em;
+      }
+
+      .panel > p {
+        margin: 0 0 24px;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .messages {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .messages li {
+        list-style: none;
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: rgba(59, 130, 246, 0.15);
+        border: 1px solid rgba(59, 130, 246, 0.35);
+        color: #dbeafe;
+        font-size: 0.95rem;
+      }
+
+      .messages li.error {
+        background: rgba(248, 113, 113, 0.18);
+        border-color: rgba(248, 113, 113, 0.4);
+        color: #fecaca;
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        padding: 6px;
+        border-radius: 16px;
+        background: rgba(148, 163, 184, 0.08);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        margin-bottom: 24px;
+      }
+
+      .tab {
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        transition: all 0.25s ease;
+      }
+
+      .tab.active {
+        background: rgba(59, 130, 246, 0.18);
+        color: var(--text);
+        box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.35);
+      }
+
+      .form-card {
+        display: none;
+        animation: fadeIn 0.4s ease forwards;
+      }
+
+      .form-card.active {
+        display: block;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .input-control {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(15, 23, 42, 0.65);
+        color: var(--text);
+        font-size: 0.98rem;
+        transition: border 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .input-control:focus {
+        outline: none;
+        border-color: rgba(59, 130, 246, 0.8);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+      }
+
+      .field label {
+        font-size: 0.9rem;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .field-errors {
+        color: var(--error);
+        font-size: 0.85rem;
+        margin: 2px 0 0;
+      }
+
+      .submit {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: none;
+        background: linear-gradient(120deg, #2563eb, #3b82f6);
+        color: white;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        margin-top: 6px;
+      }
+
+      .submit:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 22px rgba(59, 130, 246, 0.3);
+      }
+
+      .divider {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 24px 0;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: rgba(148, 163, 184, 0.25);
+        margin: 0 12px;
+      }
+
+      .switcher {
+        text-align: center;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .switcher button {
+        border: none;
+        background: none;
+        color: #60a5fa;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      @media (max-width: 960px) {
+        body {
+          padding: 32px 0;
+        }
+
+        .container {
+          gap: 24px;
+        }
+
+        .hero {
+          padding: 28px;
+        }
+
+        .panel {
+          padding: 32px 24px;
+        }
+      }
+    </style>
+  </head>
+  <body data-active-tab="{{ active_tab }}">
+    <div class="container">
+      <section class="hero">
+        <div class="hero-content">
+          <div class="brand">
+            <div class="brand-badge">ML</div>
+            <h1>Start learning smarter.</h1>
+          </div>
+          <p>
+            Sign in or create an account to track your courses, collaborate with classmates,
+            and stay on top of what matters.
+          </p>
+          <p>
+            Moodle Lite gives you a polished learning space without the clutter —
+            just the essentials, beautifully designed.
+          </p>
+        </div>
+        <div class="hero-tiles">
+          <span></span>
+          <span></span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="brand">
+          <div class="brand-badge">∞</div>
+          <h2>Welcome back</h2>
+        </div>
+        <p>Choose your path below. We’ll take care of the rest.</p>
+
+        {% if messages %}
+          <ul class="messages">
+            {% for message in messages %}
+              <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        <div class="tabs">
+          <button
+            type="button"
+            class="tab {% if active_tab == 'login' %}active{% endif %}"
+            data-target="login"
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            class="tab {% if active_tab == 'register' %}active{% endif %}"
+            data-target="register"
+          >
+            Create account
+          </button>
+        </div>
+
+        <form
+          method="post"
+          class="form-card {% if active_tab == 'login' %}active{% endif %}"
+          id="login-card"
+        >
+          {% csrf_token %}
+          <input type="hidden" name="action" value="login" />
+          {% if login_form.non_field_errors %}
+            <div class="field-errors">{{ login_form.non_field_errors|join:", " }}</div>
+          {% endif %}
+          {% for field in login_form %}
+            <div class="field{% if field.errors %} has-error{% endif %}">
+              {{ field.label_tag }}
+              {{ field }}
+              {% if field.errors %}
+                <div class="field-errors">{{ field.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+          <button class="submit" type="submit">Sign in</button>
+          <div class="switcher">
+            No account yet?
+            <button type="button" data-target="register">Create one</button>
+          </div>
+        </form>
+
+        <form
+          method="post"
+          class="form-card {% if active_tab == 'register' %}active{% endif %}"
+          id="register-card"
+        >
+          {% csrf_token %}
+          <input type="hidden" name="action" value="register" />
+          {% if register_form.non_field_errors %}
+            <div class="field-errors">{{ register_form.non_field_errors|join:", " }}</div>
+          {% endif %}
+          {% for field in register_form %}
+            <div class="field{% if field.errors %} has-error{% endif %}">
+              {{ field.label_tag }}
+              {{ field }}
+              {% if field.errors %}
+                <div class="field-errors">{{ field.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+          <button class="submit" type="submit">Create my account</button>
+          <div class="switcher">
+            Already a member?
+            <button type="button" data-target="login">Sign in instead</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <script>
+      const tabs = document.querySelectorAll(".tab");
+      const switchers = document.querySelectorAll(".switcher button");
+      const forms = {
+        login: document.getElementById("login-card"),
+        register: document.getElementById("register-card"),
+      };
+
+      function activate(target) {
+        tabs.forEach((tab) => {
+          tab.classList.toggle("active", tab.dataset.target === target);
+        });
+        Object.entries(forms).forEach(([name, form]) => {
+          form.classList.toggle("active", name === target);
+        });
+        document.body.dataset.activeTab = target;
+      }
+
+      [...tabs, ...switchers].forEach((control) => {
+        control.addEventListener("click", () => activate(control.dataset.target));
+      });
+
+      const initial = document.body.dataset.activeTab || "login";
+      activate(initial);
+    </script>
+  </body>
+</html>

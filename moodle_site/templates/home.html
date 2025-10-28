@@ -2,10 +2,175 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Hello, world!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Moodle Lite Dashboard</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f172a;
+        --panel: rgba(15, 23, 42, 0.75);
+        --card: rgba(30, 41, 59, 0.85);
+        --accent: #38bdf8;
+        --text: #f8fafc;
+        --muted: #cbd5f5;
+        --border: rgba(148, 163, 184, 0.25);
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at top, rgba(56, 189, 248, 0.22), transparent 55%),
+          linear-gradient(160deg, #020617, #0f172a 55%, #111827);
+        color: var(--text);
+        padding: 32px 16px;
+      }
+
+      .dashboard {
+        width: min(960px, 96vw);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border-radius: 28px;
+        padding: 40px;
+        border: 1px solid var(--border);
+        backdrop-filter: blur(16px);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.4);
+      }
+
+      .panel h1 {
+        margin: 0 0 16px;
+        font-size: clamp(1.8rem, 2.6vw, 2.3rem);
+      }
+
+      .panel p {
+        margin: 0 0 20px;
+        color: var(--muted);
+        line-height: 1.6;
+        font-size: 1rem;
+      }
+
+      .badges {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .badge {
+        padding: 10px 16px;
+        background: rgba(56, 189, 248, 0.14);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #e0f2fe;
+      }
+
+      .cards {
+        display: grid;
+        gap: 18px;
+      }
+
+      .card {
+        background: var(--card);
+        border-radius: 22px;
+        padding: 24px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .card h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        letter-spacing: 0.01em;
+      }
+
+      .card p {
+        margin: 0;
+        color: rgba(226, 232, 240, 0.85);
+        line-height: 1.55;
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .action {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-radius: 14px;
+        color: var(--text);
+        text-decoration: none;
+        background: rgba(56, 189, 248, 0.18);
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        font-weight: 600;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .action:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 20px rgba(56, 189, 248, 0.25);
+      }
+
+      @media (max-width: 768px) {
+        .panel {
+          padding: 28px 24px;
+        }
+      }
+    </style>
   </head>
   <body>
-    <h1>Hello, world!</h1>
-    <p>Welcome to the Moodle rip-off prototype.</p>
+    <main class="dashboard">
+      <section class="panel">
+        <h1>Hello {{ request.user.first_name|default:request.user.username }} 👋</h1>
+        <p>
+          Welcome to your Moodle Lite space. This is where you’ll track classes, connect with
+          teammates, and stay ahead of upcoming work.
+        </p>
+        <div class="badges">
+          <span class="badge">Focus mode</span>
+          <span class="badge">Zero clutter</span>
+          <span class="badge">Cloud synced</span>
+        </div>
+      </section>
+      <section class="cards">
+        <article class="card">
+          <h2>Get started</h2>
+          <p>Kick things off by creating or enrolling in your first course. A clean layout keeps resources and deadlines in one place.</p>
+          <div class="actions">
+            <a class="action" href="#">+ New course</a>
+            <a class="action" href="#">Browse catalog</a>
+          </div>
+        </article>
+        <article class="card">
+          <h2>Stay in the loop</h2>
+          <p>Notifications summarize what’s new. Sync across devices and never miss an update from your instructors.</p>
+        </article>
+        <article class="card">
+          <h2>Need to switch accounts?</h2>
+          <p>Log out safely when you’re done. We’ll keep your personalised layout ready for next time.</p>
+          <div class="actions">
+            <a class="action" href="{% url 'logout' %}">Log out</a>
+          </div>
+        </article>
+      </section>
+    </main>
   </body>
 </html>
