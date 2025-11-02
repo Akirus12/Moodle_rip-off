@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Messages | Moodle Lite</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0d1117;
+      --panel-bg: rgba(13, 17, 23, 0.75);
+      --card-bg: #161b22;
+      --accent: #3b82f6;
+      --accent-muted: rgba(59, 130, 246, 0.25);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --error: #f87171;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(145deg, #0b1221, #101828);
+      color: var(--text);
+    }
+
+    .container {
+      width: min(1100px, 96vw);
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 32px;
+      align-items: stretch;
+    }
+
+    /* Left hero */
+    .hero {
+      position: relative;
+      padding: 32px;
+      background: linear-gradient(160deg, rgba(59,130,246,0.18), rgba(17,24,39,0.6));
+      border-radius: 28px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 16px;
+      min-height: 620px;
+    }
+    .hero::after {
+      content: "";
+      position: absolute; inset: 0;
+      pointer-events: none;
+    }
+    .hero > * { position: relative; }
+
+    .brand { display: flex; align-items: baseline; gap: 8px; }
+    .brand-badge {
+      width: 46px; height: 46px;
+      display: grid; place-items: center;
+      background: rgba(59, 130, 246, 0.2);
+      border-radius: 14px;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      font-weight: 600; color: #bfdbfe;
+    }
+    .brand h2 { margin: 0; font-size: 1.2rem; letter-spacing: -0.01em; }
+
+    .contacts-card {
+      margin-top: 6px;
+      padding: 12px;
+      border-radius: 18px;
+      background: var(--panel-bg);
+      border: 1px solid rgba(148,163,184,0.18);
+      backdrop-filter: blur(22px);
+    }
+    .search { display: flex; gap: 8px; margin-bottom: 10px; }
+    .search input {
+      width: 100%; padding: 10px 12px; border-radius: 12px;
+      border: 1px solid rgba(148,163,184,0.25);
+      background: rgba(15,23,42,0.65); color: var(--text);
+    }
+    .contacts { display: grid; gap: 8px; max-height: 420px; overflow: auto; padding-right: 4px; }
+    .contact {
+      border: 1px solid rgba(148,163,184,0.18);
+      background: rgba(59,130,246,0.08);
+      padding: 10px; border-radius: 14px;
+      display: grid; grid-template-columns: 42px 1fr auto; gap: 10px;
+      align-items: center; cursor: pointer;
+      transition: transform .12s ease, background .2s ease, border .2s ease;
+    }
+    .contact:hover { transform: translateY(-1px); }
+    .contact.active {
+      background: rgba(59,130,246,0.18);
+      box-shadow: inset 0 0 0 1px rgba(59,130,246,0.35);
+    }
+    .avatar {
+      width: 42px; height: 42px; border-radius: 12px;
+      display: grid; place-items: center; font-weight: 700;
+      border: 1px solid rgba(59,130,246,0.35);
+      color: #dbeafe; background: rgba(59,130,246,0.14);
+      position: relative;
+    }
+    .dot {
+      position: absolute; right: -2px; bottom: -2px;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #22c55e; border: 2px solid #0f172a;
+    }
+    .contact h4 { margin: 0; font-size: .98rem; }
+    .contact p {
+      margin: 0; color: var(--muted); font-size: .86rem; line-height: 1.3;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .badge {
+      min-width: 22px; height: 22px; border-radius: 11px;
+      display: grid; place-items: center;
+      background: rgba(59,130,246,0.28); color: #e5edff;
+      font-size: .78rem; font-weight: 700; padding: 0 6px;
+      border: 1px solid rgba(59,130,246,0.45);
+    }
+
+    /* Right chat panel */
+    .panel {
+      position: relative; padding: 0; border-radius: 28px;
+      background: var(--panel-bg); border: 1px solid rgba(148,163,184,0.18);
+      backdrop-filter: blur(22px);
+      min-height: 620px; display: grid; grid-template-rows: auto 1fr auto;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.45);
+    }
+    .chat-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid rgba(148,163,184,0.18);
+    }
+    .chat-header .who { display: flex; gap: 12px; align-items: center; }
+    .chat-header .who .avatar { width: 36px; height: 36px; border-radius: 10px; }
+    .chat-header h3 { margin: 0; font-size: 1rem; }
+    .chat-header small { display: block; color: var(--muted); margin-top: 2px; }
+
+    .messages { padding: 18px 16px 6px; display: grid; gap: 10px; overflow: auto; }
+    .day-divider {
+      text-align: center; color: var(--muted); font-size: .8rem; margin: 8px 0 6px; position: relative;
+    }
+    .day-divider::before, .day-divider::after {
+      content: ""; height: 1px; background: rgba(148,163,184,0.25);
+      position: absolute; top: 50%; width: 36%;
+    }
+    .day-divider::before { left: 0; } .day-divider::after { right: 0; }
+
+    .bubble {
+      max-width: min(72%, 560px);
+      padding: 10px 12px; border-radius: 14px;
+      border: 1px solid rgba(148,163,184,0.18);
+      background: rgba(15,23,42,0.65); line-height: 1.45; position: relative;
+    }
+    .from-them { justify-self: start; background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.35); }
+    .from-me { justify-self: end; background: rgba(59,130,246,0.22); border-color: rgba(59,130,246,0.45); box-shadow: inset 0 0 0 1px rgba(59,130,246,0.25); }
+    .meta { margin-top: 4px; font-size: .78rem; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+
+    /* Composer + buttons */
+    .composer {
+      padding: 12px; border-top: 1px solid rgba(148,163,184,0.18);
+      display: grid; grid-template-columns: 1fr auto auto auto; gap: 10px;
+    }
+    .composer textarea {
+      resize: none; height: 48px; min-height: 48px; max-height: 128px;
+      padding: 12px 14px; border-radius: 12px;
+      border: 1px solid rgba(148,163,184,0.25);
+      background: rgba(15,23,42,0.65); color: var(--text); font-size: .98rem;
+    }
+    .btn {
+      padding: 12px 16px; border-radius: 12px; border: none;
+      font-weight: 600; font-size: 1rem; cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .btn.primary {
+      background: linear-gradient(120deg, #2563eb, #3b82f6); color: white;
+    }
+    .btn.ghost {
+      background: rgba(59,130,246,0.12);
+      border: 1px solid rgba(59,130,246,0.35);
+      color: #dbeafe;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 12px 22px rgba(59,130,246,0.2); }
+
+    .icon-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .icon { width: 18px; height: 18px; display: inline-block; }
+
+    /* Modal base */
+    .modal {
+      position: fixed; inset: 0;
+      background: rgba(2,6,23,0.6);
+      display: none; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .modal.open { display: flex; }
+    .dialog {
+      width: min(520px, 95vw);
+      background: var(--panel-bg);
+      border: 1px solid rgba(148,163,184,0.18);
+      border-radius: 20px;
+      backdrop-filter: blur(22px);
+      padding: 18px;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.5);
+    }
+    .dialog h3 { margin: 4px 0 12px; font-size: 1.05rem; }
+    .dialog .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .dialog .footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+
+    /* Minimalistic clock picker */
+    .clock {
+      margin: 6px 0 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .clock .ring {
+      background: rgba(15,23,42,0.65);
+      border: 1px solid rgba(148,163,184,0.25);
+      border-radius: 14px; padding: 10px;
+    }
+    .ring h4 { margin: 0 0 8px; font-size: .92rem; color: var(--muted); }
+    .nums {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
+    }
+    .num {
+      padding: 8px 0; text-align: center; border-radius: 10px; cursor: pointer;
+      border: 1px solid rgba(148,163,184,0.18);
+      background: rgba(59,130,246,0.10);
+      transition: transform .1s ease, background .15s ease;
+      user-select: none;
+    }
+    .num:hover { transform: translateY(-1px); }
+    .num.active {
+      background: rgba(59,130,246,0.22);
+      box-shadow: inset 0 0 0 1px rgba(59,130,246,0.45);
+      border-color: rgba(59,130,246,0.45);
+    }
+    .preview {
+      padding: 10px 12px; border-radius: 12px; margin-top: 4px;
+      background: rgba(59,130,246,0.10);
+      border: 1px solid rgba(59,130,246,0.30);
+      color: #dbeafe; font-weight: 600; letter-spacing: .02em;
+    }
+
+    /* Broadcast wizard */
+    .wizard-steps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 10px; }
+    .wizard-steps .step {
+      text-align: center; padding: 8px; border-radius: 10px; font-weight: 600;
+      border: 1px solid rgba(148,163,184,0.18); color: var(--muted);
+      background: rgba(59,130,246,0.08);
+    }
+    .wizard-steps .step.active {
+      color: var(--text);
+      background: rgba(59,130,246,0.18);
+      box-shadow: inset 0 0 0 1px rgba(59,130,246,0.35);
+    }
+
+    .list {
+      max-height: 260px; overflow: auto; display: grid; gap: 8px; padding-right: 4px;
+    }
+    .list .item {
+      display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center;
+      padding: 10px; border-radius: 12px;
+      border: 1px solid rgba(148,163,184,0.18);
+      background: rgba(59,130,246,0.08);
+    }
+    .list .item label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .list .item input { width: 18px; height: 18px; }
+
+    @media (max-width: 1080px) {
+      .container { grid-template-columns: 1fr; gap: 24px; }
+      .hero { min-height: unset; }
+      .contacts { max-height: 280px; }
+      .composer { grid-template-columns: 1fr auto auto; }
+      #btnBroadcast { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Left -->
+    <aside class="hero">
+      <div class="brand">
+        <div class="brand-badge">ML</div>
+        <h2>Messages</h2>
+      </div>
+      <p style="margin:0;color:var(--muted);max-width:36ch;line-height:1.55;">
+        Find classmates, continue conversations, and stay in sync with your courses.
+      </p>
+
+      <div class="contacts-card">
+        <div class="search">
+          <input id="search" type="text" placeholder="Search contacts…" aria-label="Search contacts" />
+        </div>
+        <div id="contacts" class="contacts" role="listbox" aria-label="Contacts list"></div>
+      </div>
+    </aside>
+
+    <!-- Right -->
+    <section class="panel">
+      <header class="chat-header">
+        <div class="who" id="chat-who">
+          <div class="avatar">?</div>
+          <div>
+            <h3 id="chat-name">Select a contact</h3>
+            <small id="chat-status">—</small>
+          </div>
+        </div>
+        <div class="brand">
+          <div class="brand-badge">∞</div>
+          <h2 style="margin:0;font-size:1rem;">Moodle Lite</h2>
+        </div>
+      </header>
+
+      <main id="chat" class="messages" aria-live="polite">
+        <div class="day-divider">Today</div>
+        <p style="color:var(--muted);text-align:center;margin:0.5rem 0 1rem;">
+          Choose a contact to view messages.
+        </p>
+      </main>
+
+      <form class="composer" id="composer" onsubmit="sendMessage(event)" method="post">
+        {% csrf_token %}
+        <textarea id="messageInput" placeholder="Write a message…" aria-label="Message input"></textarea>
+
+        <!-- Schedule -->
+        <button id="btnSchedule" type="button" class="btn ghost icon-btn" title="schedule a message" aria-label="Schedule a message">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span>Schedule</span>
+        </button>
+
+        <!-- Broadcast (role-controlled) -->
+        <button id="btnBroadcast" type="button" class="btn ghost icon-btn"
+                {% if not is_teacher_or_admin %}style="display:none"{% endif %}
+                aria-label="Broadcast message">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 8a7 7 0 0 1 0 8M2.5 6a10 10 0 0 1 0 12M19 8a7 7 0 0 0 0 8M21.5 6a10 10 0 0 0 0 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <span>Broadcast</span>
+        </button>
+
+        <button type="submit" class="btn primary">Send</button>
+      </form>
+    </section>
+  </div>
+
+  <!-- Schedule modal -->
+  <div class="modal" id="scheduleModal" aria-hidden="true" role="dialog" aria-label="Schedule message">
+    <div class="dialog">
+      <h3>Schedule message</h3>
+      <div class="clock">
+        <div class="ring">
+          <h4>Hour</h4>
+          <div class="nums" id="hourGrid"></div>
+        </div>
+        <div class="ring">
+          <h4>Minute</h4>
+          <div class="nums" id="minuteGrid"></div>
+        </div>
+      </div>
+      <div class="preview" id="schedulePreview">Will send at —:—</div>
+      <div class="footer">
+        <button class="btn ghost" type="button" onclick="closeSchedule()">Cancel</button>
+        <button class="btn primary" type="button" onclick="confirmSchedule()">Schedule</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Broadcast wizard -->
+  <div class="modal" id="broadcastModal" aria-hidden="true" role="dialog" aria-label="Broadcast message">
+    <div class="dialog">
+      <div class="wizard-steps">
+        <div class="step" id="bwStep1">1. Select contacts</div>
+        <div class="step" id="bwStep2">2. Compose & send</div>
+      </div>
+
+      <div id="broadcastStep1">
+        <div class="list" id="broadcastContactList"></div>
+        <div class="footer">
+          <button class="btn ghost" type="button" onclick="closeBroadcast()">Cancel</button>
+          <button class="btn primary" type="button" onclick="gotoBroadcastStep2()">Next</button>
+        </div>
+      </div>
+
+      <div id="broadcastStep2" style="display:none">
+        <div class="row">
+          <textarea id="broadcastText" placeholder="Write a message to selected contacts…" style="flex:1;min-height:100px;padding:12px 14px;border-radius:12px;border:1px solid rgba(148,163,184,.25);background:rgba(15,23,42,.65);color:var(--text);"></textarea>
+        </div>
+        <div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px;">
+          <button class="btn ghost icon-btn" type="button" title="schedule a message" onclick="openSchedule(true)">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span>Schedule</span>
+          </button>
+          <button class="btn primary" type="button" onclick="sendBroadcast()">Send now</button>
+        </div>
+        <div class="footer" style="justify-content:space-between;margin-top:6px;">
+          <button class="btn ghost" type="button" onclick="gotoBroadcastStep1()">Back</button>
+          <button class="btn ghost" type="button" onclick="closeBroadcast()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // role flag from server (already used to hide/show Broadcast button)
+    const userIsTeacherOrAdmin = {{ is_teacher_or_admin|yesno:"true,false" }};
+
+    // Mock data (UI only)
+    const state = {
+      contacts: [
+        { id:"ab", name:"AB", initials:"AB", online:true, unread:2,
+          lastPreview:"c.",
+          messages:[
+            {id:1,from:"them",text:"a?",at:"09:18"},
+            {id:2,from:"me",text:"b",at:"09:20"},
+            {id:3,from:"them",text:"c",at:"11:02"},
+          ]},
+        { id:"cd", name:"CD", initials:"CD", online:false, unread:0,
+          lastPreview:"b.",
+          messages:[
+            {id:1,from:"me",text:"a.",at:"16:42"},
+            {id:2,from:"them",text:"b.",at:"16:45"},
+          ]},
+      ],
+      activeId: "ab",
+      schedule: { hour:null, minute:null, broadcastMode:false },
+      broadcast: { selected: new Set() },
+    };
+
+    const els = {
+      contacts: document.getElementById("contacts"),
+      chat: document.getElementById("chat"),
+      chatName: document.getElementById("chat-name"),
+      chatStatus: document.getElementById("chat-status"),
+      chatWho: document.getElementById("chat-who"),
+      messageInput: document.getElementById("messageInput"),
+      search: document.getElementById("search"),
+      btnBroadcast: document.getElementById("btnBroadcast"),
+      // schedule modal
+      scheduleModal: document.getElementById("scheduleModal"),
+      hourGrid: document.getElementById("hourGrid"),
+      minuteGrid: document.getElementById("minuteGrid"),
+      schedulePreview: document.getElementById("schedulePreview"),
+      // broadcast modal
+      broadcastModal: document.getElementById("broadcastModal"),
+      bwStep1: document.getElementById("bwStep1"),
+      bwStep2: document.getElementById("bwStep2"),
+      broadcastStep1: document.getElementById("broadcastStep1"),
+      broadcastStep2: document.getElementById("broadcastStep2"),
+      broadcastContactList: document.getElementById("broadcastContactList"),
+      broadcastText: document.getElementById("broadcastText"),
+    };
+
+    if (!userIsTeacherOrAdmin && els.btnBroadcast) {
+      els.btnBroadcast.style.display = "none";
+    }
+
+    function renderContacts(filter=""){
+      els.contacts.innerHTML = "";
+      state.contacts
+        .filter(c => c.name.toLowerCase().includes(filter.toLowerCase()))
+        .forEach(c => {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "contact" + (state.activeId===c.id ? " active" : "");
+          item.onclick = () => setActive(c.id);
+
+          const avatar = document.createElement("div");
+          avatar.className="avatar"; avatar.textContent=c.initials;
+          if (c.online) { const d=document.createElement("span"); d.className="dot"; avatar.appendChild(d); }
+
+          const info = document.createElement("div");
+          const h4 = document.createElement("h4"); h4.textContent=c.name;
+          const p = document.createElement("p"); p.textContent=c.lastPreview || "\u00A0";
+          info.append(h4,p);
+
+          const badge = document.createElement("div");
+          badge.className="badge"; badge.style.visibility = c.unread ? "visible":"hidden";
+          badge.textContent = c.unread || "";
+
+          item.append(avatar, info, badge);
+          els.contacts.appendChild(item);
+        });
+    }
+
+    function setActive(id){
+      state.activeId = id;
+      [...els.contacts.children].forEach(el=>el.classList.remove("active"));
+      const idx = state.contacts.findIndex(c=>c.id===id);
+      if (idx>=0 && els.contacts.children[idx]) els.contacts.children[idx].classList.add("active");
+      const c = state.contacts.find(c=>c.id===id);
+      if (c) c.unread=0;
+      renderHeader(); renderContacts(els.search.value); renderChat();
+      document.getElementById("messageInput").focus();
+    }
+
+    function renderHeader(){
+      const c = state.contacts.find(x=>x.id===state.activeId); if(!c) return;
+      els.chatName.textContent = c.name;
+      els.chatStatus.textContent = c.online ? "Online" : "Last seen recently";
+      els.chatWho.querySelector(".avatar").textContent = c.initials;
+    }
+
+    function renderChat(){
+      const c = state.contacts.find(x=>x.id===state.activeId); if(!c) return;
+      els.chat.innerHTML = "";
+      const div = document.createElement("div"); div.className="day-divider"; div.textContent="Today";
+      els.chat.appendChild(div);
+      c.messages.forEach(m=>{
+        const b = document.createElement("div");
+        b.className = "bubble " + (m.from==="me" ? "from-me":"from-them");
+        b.innerHTML = `<div>${escapeHtml(m.text).replace(/\n/g,"<br>")}</div>
+                       <div class="meta"><span>${m.at}</span>${m.scheduled?`<span>• scheduled</span>`:""}</div>`;
+        els.chat.appendChild(b);
+      });
+      els.chat.scrollTop = els.chat.scrollHeight;
+    }
+
+    function sendMessage(e){
+      e.preventDefault();
+      const ta = document.getElementById("messageInput");
+      const text = ta.value.trim(); if(!text) return;
+      const c = state.contacts.find(x=>x.id===state.activeId); if(!c) return;
+      const at = nowHHMM();
+      c.messages.push({id:Date.now(),from:"me",text,at});
+      c.lastPreview=text; ta.value="";
+      renderContacts(els.search.value); renderChat();
+    }
+
+    // Schedule UI
+    function openSchedule(broadcastMode=false){
+      state.schedule={hour:null,minute:null,broadcastMode};
+      updatePreview(); renderTimeGrid();
+      els.scheduleModal.classList.add("open");
+      els.scheduleModal.setAttribute("aria-hidden","false");
+    }
+    function closeSchedule(){
+      els.scheduleModal.classList.remove("open");
+      els.scheduleModal.setAttribute("aria-hidden","true");
+    }
+    function renderTimeGrid(){
+      els.hourGrid.innerHTML=""; for(let h=0;h<24;h++){
+        const btn=document.createElement("div");
+        btn.className="num"+(state.schedule.hour===h?" active":"");
+        btn.textContent=String(h).padStart(2,"0");
+        btn.onclick=()=>{state.schedule.hour=h;updatePreview();renderTimeGrid();};
+        els.hourGrid.appendChild(btn);
+      }
+      els.minuteGrid.innerHTML=""; for(let m=0;m<60;m+=5){
+        const btn=document.createElement("div");
+        btn.className="num"+(state.schedule.minute===m?" active":"");
+        btn.textContent=String(m).padStart(2,"0");
+        btn.onclick=()=>{state.schedule.minute=m;updatePreview();renderTimeGrid();};
+        els.minuteGrid.appendChild(btn);
+      }
+    }
+    function updatePreview(){
+      const {hour,minute}=state.schedule;
+      document.getElementById("schedulePreview").textContent =
+        (hour==null||minute==null) ? "Will send at —:—" : `Will send at ${String(hour).padStart(2,"0")}:${String(minute).padStart(2,"0")}`;
+    }
+    function confirmSchedule(){
+      const {hour,minute,broadcastMode}=state.schedule;
+      if (hour==null||minute==null) return;
+      const at = `${String(hour).padStart(2,"0")}:${String(minute).padStart(2,"0")}`;
+      if (broadcastMode){
+        toast(`Scheduled broadcast for ${at} (UI only).`);
+      } else {
+        const c = state.contacts.find(x=>x.id===state.activeId); if(!c) return;
+        const text = document.getElementById("messageInput").value.trim() || "(scheduled message)";
+        c.messages.push({id:Date.now(),from:"me",text,at,scheduled:true});
+        c.lastPreview=text; renderContacts(els.search.value); renderChat();
+        document.getElementById("messageInput").value="";
+      }
+      closeSchedule();
+    }
+
+    // Broadcast UI
+    function openBroadcast(){
+      state.broadcast.selected=new Set();
+      document.getElementById("bwStep1").classList.add("active");
+      document.getElementById("bwStep2").classList.remove("active");
+      document.getElementById("broadcastStep1").style.display="";
+      document.getElementById("broadcastStep2").style.display="none";
+      renderBroadcastContactList();
+      els.broadcastModal.classList.add("open"); els.broadcastModal.setAttribute("aria-hidden","false");
+    }
+    function closeBroadcast(){
+      els.broadcastModal.classList.remove("open"); els.broadcastModal.setAttribute("aria-hidden","true");
+    }
+    function gotoBroadcastStep2(){
+      document.getElementById("bwStep1").classList.remove("active");
+      document.getElementById("bwStep2").classList.add("active");
+      document.getElementById("broadcastStep1").style.display="none";
+      document.getElementById("broadcastStep2").style.display="";
+      document.getElementById("broadcastText").focus();
+    }
+    function gotoBroadcastStep1(){
+      document.getElementById("bwStep1").classList.add("active");
+      document.getElementById("bwStep2").classList.remove("active");
+      document.getElementById("broadcastStep1").style.display="";
+      document.getElementById("broadcastStep2").style.display="none";
+    }
+    function renderBroadcastContactList(){
+      els.broadcastContactList.innerHTML="";
+      state.contacts.forEach(c=>{
+        const row=document.createElement("div"); row.className="item";
+        const cb=document.createElement("input"); cb.type="checkbox"; cb.id=`bsel-${c.id}`;
+        cb.onchange=()=>{ cb.checked ? state.broadcast.selected.add(c.id) : state.broadcast.selected.delete(c.id); };
+        const label=document.createElement("label"); label.htmlFor=cb.id;
+        const av=document.createElement("div"); av.className="avatar"; av.style.width="28px"; av.style.height="28px"; av.style.borderRadius="8px"; av.textContent=c.initials;
+        const name=document.createElement("div"); name.textContent=c.name;
+        label.append(av,name);
+        const status=document.createElement("small"); status.style.color="var(--muted)"; status.textContent=c.online?"Online":"Offline";
+        row.append(cb,label,status);
+        els.broadcastContactList.appendChild(row);
+      });
+    }
+    function sendBroadcast(){
+      const text=document.getElementById("broadcastText").value.trim();
+      if (!text || state.broadcast.selected.size===0){ toast("Select at least one contact and type a message."); return; }
+      const at=nowHHMM();
+      state.broadcast.selected.forEach(id=>{
+        const c=state.contacts.find(x=>x.id===id); if(!c) return;
+        c.messages.push({id:Date.now()+Math.random(),from:"me",text,at});
+        c.lastPreview=text;
+      });
+      renderContacts(els.search.value);
+      if (state.broadcast.selected.has(state.activeId)) renderChat();
+      document.getElementById("broadcastText").value="";
+      toast(`Broadcast sent to ${state.broadcast.selected.size} contact(s).`);
+      closeBroadcast();
+    }
+
+    // Helpers / events
+    document.getElementById("search").addEventListener("input", e=>renderContacts(e.target.value));
+    document.getElementById("btnSchedule").addEventListener("click", ()=>openSchedule(false));
+    const bcBtn = document.getElementById("btnBroadcast");
+    if (bcBtn) bcBtn.addEventListener("click", openBroadcast);
+    document.getElementById("scheduleModal").addEventListener("click", e=>{ if(e.target.id==="scheduleModal") closeSchedule(); });
+    document.getElementById("broadcastModal").addEventListener("click", e=>{ if(e.target.id==="broadcastModal") closeBroadcast(); });
+
+    function nowHHMM(){ const n=new Date(); const p=v=>String(v).padStart(2,"0"); return `${p(n.getHours())}:${p(n.getMinutes())}`; }
+    function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function toast(msg){
+      const el=document.createElement("div"); el.textContent=msg;
+      Object.assign(el.style,{position:"fixed",bottom:"18px",left:"50%",transform:"translateX(-50%)",background:"rgba(15,23,42,.85)",color:"var(--text)",padding:"10px 14px",borderRadius:"10px",border:"1px solid rgba(148,163,184,.25)",zIndex:9999});
+      document.body.appendChild(el); setTimeout(()=>el.remove(),2200);
+    }
+
+    // init
+    renderContacts(); setActive(state.activeId);
+  </script>
+</body>
+</html>
