@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome | Moodle Lite{% endblock %}
+
+{% block body_attrs %}data-active-tab="{{ active_tab }}"{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-container">
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <div class="brand">
+          <div class="brand-icon">ML</div>
+          <h1 class="hero-title">Start learning smarter</h1>
+        </div>
+        <p class="hero-text">
+          Sign in or create an account to track your courses, collaborate with classmates,
+          and stay on top of what matters.
+        </p>
+        <p class="hero-text">
+          Moodle Lite gives you a polished learning space without the clutter —
+          just the essentials, beautifully designed.
+        </p>
+      </div>
+    </section>
+
+    <!-- Auth Panel -->
+    <section class="panel">
+      <div class="brand">
+        <div class="brand-icon">∞</div>
+        <h2 class="brand-text">Welcome back</h2>
+      </div>
+      <p class="panel-description">Choose your path below. We'll take care of the rest.</p>
+
+      <!-- Messages -->
+      {% if messages %}
+        <ul class="messages">
+          {% for message in messages %}
+            <li class="message {{ message.tags }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button
+          type="button"
+          class="tab {% if active_tab == 'login' %}active{% endif %}"
+          data-target="login"
+        >
+          Sign in
+        </button>
+        <button
+          type="button"
+          class="tab {% if active_tab == 'register' %}active{% endif %}"
+          data-target="register"
+        >
+          Create account
+        </button>
+      </div>
+
+      <!-- Login Form -->
+      <form
+        method="post"
+        class="form {% if active_tab == 'login' %}active{% endif %}"
+        id="login-form"
+      >
+        {% csrf_token %}
+        <input type="hidden" name="action" value="login">
+
+        {% if login_form.non_field_errors %}
+          <div class="form-errors">{{ login_form.non_field_errors|join:", " }}</div>
+        {% endif %}
+
+        {% for field in login_form %}
+          <div class="form-field">
+            <label class="form-label" for="{{ field.id_for_label }}">
+              {{ field.label }}
+            </label>
+            <input
+              type="{{ field.field.widget.input_type }}"
+              name="{{ field.name }}"
+              id="{{ field.id_for_label }}"
+              class="form-input"
+              {% if field.field.required %}required{% endif %}
+              {% if field.value %}value="{{ field.value }}"{% endif %}
+            >
+            {% if field.errors %}
+              <div class="form-errors">{{ field.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary btn-full">
+          Sign in
+        </button>
+
+        <div class="divider">or</div>
+
+        <p class="text-center text-muted">
+          No account yet?
+          <button type="button" class="link-button" data-target="register">
+            Create one
+          </button>
+        </p>
+      </form>
+
+      <!-- Register Form -->
+      <form
+        method="post"
+        class="form {% if active_tab == 'register' %}active{% endif %}"
+        id="register-form"
+      >
+        {% csrf_token %}
+        <input type="hidden" name="action" value="register">
+
+        {% if register_form.non_field_errors %}
+          <div class="form-errors">{{ register_form.non_field_errors|join:", " }}</div>
+        {% endif %}
+
+        {% for field in register_form %}
+          <div class="form-field">
+            <label class="form-label" for="{{ field.id_for_label }}">
+              {{ field.label }}
+            </label>
+            <input
+              type="{{ field.field.widget.input_type }}"
+              name="{{ field.name }}"
+              id="{{ field.id_for_label }}"
+              class="form-input"
+              {% if field.field.required %}required{% endif %}
+              {% if field.value %}value="{{ field.value }}"{% endif %}
+            >
+            {% if field.errors %}
+              <div class="form-errors">{{ field.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary btn-full">
+          Create my account
+        </button>
+
+        <div class="divider">or</div>
+
+        <p class="text-center text-muted">
+          Already a member?
+          <button type="button" class="link-button" data-target="login">
+            Sign in instead
+          </button>
+        </p>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Tab switching functionality
+  const tabs = document.querySelectorAll('.tab');
+  const linkButtons = document.querySelectorAll('.link-button[data-target]');
+  const forms = {
+    login: document.getElementById('login-form'),
+    register: document.getElementById('register-form')
+  };
+
+  function activateTab(target) {
+    // Update tabs
+    tabs.forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.target === target);
+    });
+
+    // Update forms
+    Object.entries(forms).forEach(([name, form]) => {
+      form.classList.toggle('active', name === target);
+    });
+
+    // Update body attribute for potential styling hooks
+    document.body.dataset.activeTab = target;
+  }
+
+  // Attach event listeners
+  [...tabs, ...linkButtons].forEach(element => {
+    element.addEventListener('click', () => {
+      activateTab(element.dataset.target);
+    });
+  });
+
+  // Initialize with current tab
+  const initialTab = document.body.dataset.activeTab || 'login';
+  activateTab(initialTab);
+</script>
+{% endblock %}
