@@ -209,37 +209,77 @@
     .dialog .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     .dialog .footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
 
-    /* Minimalistic clock picker */
-    .clock {
-      margin: 6px 0 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-    }
-    .clock .ring {
+    /* Phone-like alarm wheel picker */
+    .timepicker{
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: stretch;
+      gap: 8px;
+      margin: 6px 0 12px;
+      padding: 8px 10px;
+      border-radius: 14px;
       background: rgba(15,23,42,0.65);
       border: 1px solid rgba(148,163,184,0.25);
-      border-radius: 14px; padding: 10px;
     }
-    .ring h4 { margin: 0 0 8px; font-size: .92rem; color: var(--muted); }
-    .nums {
-      display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
+
+    .picker-col{
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-width: 0;
     }
-    .num {
-      padding: 8px 0; text-align: center; border-radius: 10px; cursor: pointer;
+
+    .picker-label{
+      font-size: .9rem;
+      color: var(--muted);
+      margin: 0 0 6px;
+      text-align: center;
+    }
+
+    .colon{
+      align-self: center;
+      justify-self: center;
+      font-weight: 700;
+      letter-spacing: .02em;
+      opacity: .8;
+    }
+
+    .wheel{
+      position: relative;
+      height: calc(7 * 36px); /* 7 visible rows; JS relies on 36px row height */
+      max-height: 252px;
+      overflow-y: auto;
+      scrollbar-width: none;
+      scroll-snap-type: y mandatory;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 12px;
+      background: rgba(59,130,246,0.08);
       border: 1px solid rgba(148,163,184,0.18);
-      background: rgba(59,130,246,0.10);
-      transition: transform .1s ease, background .15s ease;
+    }
+    .wheel::-webkit-scrollbar{ display:none; }
+
+    .option{
+      height: 36px;
+      display: grid;
+      place-items: center;
+      scroll-snap-align: center;
       user-select: none;
+      font-weight: 600;
+      letter-spacing: .02em;
+      color: #dbeafe;
     }
-    .num:hover { transform: translateY(-1px); }
-    .num.active {
-      background: rgba(59,130,246,0.22);
-      box-shadow: inset 0 0 0 1px rgba(59,130,246,0.45);
-      border-color: rgba(59,130,246,0.45);
-    }
-    .preview {
-      padding: 10px 12px; border-radius: 12px; margin-top: 4px;
+    .option.pad{ opacity: 0; }
+
+    .picker-overlay{
+      pointer-events: none;
+      position: absolute;
+      left: 10px; right: 10px;
+      top: 50%;
+      height: 36px;
+      transform: translateY(-50%);
+      border-radius: 10px;
+      box-shadow: inset 0 0 0 1px rgba(59,130,246,0.35), 0 0 0 9999px rgba(0,0,0,0);
       background: rgba(59,130,246,0.10);
-      border: 1px solid rgba(59,130,246,0.30);
-      color: #dbeafe; font-weight: 600; letter-spacing: .02em;
     }
 
     /* Broadcast wizard */
@@ -348,20 +388,27 @@
     </section>
   </div>
 
-  <!-- Schedule modal -->
+  <!-- Schedule modal (phone-style wheel) -->
   <div class="modal" id="scheduleModal" aria-hidden="true" role="dialog" aria-label="Schedule message">
     <div class="dialog">
       <h3>Schedule message</h3>
-      <div class="clock">
-        <div class="ring">
-          <h4>Hour</h4>
-          <div class="nums" id="hourGrid"></div>
+
+      <div class="timepicker">
+        <div class="picker-overlay" aria-hidden="true"></div>
+
+        <div class="picker-col">
+          <div class="picker-label">Hour</div>
+          <div class="wheel" id="hourWheel" role="listbox" aria-label="Pick hour"></div>
         </div>
-        <div class="ring">
-          <h4>Minute</h4>
-          <div class="nums" id="minuteGrid"></div>
+
+        <div class="colon">:</div>
+
+        <div class="picker-col">
+          <div class="picker-label">Minute</div>
+          <div class="wheel" id="minuteWheel" role="listbox" aria-label="Pick minute"></div>
         </div>
       </div>
+
       <div class="preview" id="schedulePreview">Will send at —:—</div>
       <div class="footer">
         <button class="btn ghost" type="button" onclick="closeSchedule()">Cancel</button>
@@ -445,8 +492,6 @@
       btnBroadcast: document.getElementById("btnBroadcast"),
       // schedule modal
       scheduleModal: document.getElementById("scheduleModal"),
-      hourGrid: document.getElementById("hourGrid"),
-      minuteGrid: document.getElementById("minuteGrid"),
       schedulePreview: document.getElementById("schedulePreview"),
       // broadcast modal
       broadcastModal: document.getElementById("broadcastModal"),
@@ -534,10 +579,103 @@
       renderContacts(els.search.value); renderChat();
     }
 
+    // ===== Phone-style wheel time picker =====
+    const MINUTE_STEP = 5;          // set to 1 for every minute
+    const ROW_H = 36;               // must match CSS .option height
+    const VISIBLE_ROWS = 7;         // must match CSS calc(7 * 36px)
+    const PAD = Math.floor(VISIBLE_ROWS / 2);
+
+    function buildWheel(el, values, selected) {
+      el.innerHTML = "";
+
+      // padding top
+      for (let i = 0; i < PAD; i++) {
+        const pad = document.createElement("div");
+        pad.className = "option pad";
+        el.appendChild(pad);
+      }
+
+      values.forEach(v => {
+        const d = document.createElement("div");
+        d.className = "option";
+        d.textContent = String(v).padStart(2, "0");
+        d.setAttribute("role", "option");
+        d.setAttribute("aria-selected", v === selected ? "true" : "false");
+        el.appendChild(d);
+      });
+
+      // padding bottom
+      for (let i = 0; i < PAD; i++) {
+        const pad = document.createElement("div");
+        pad.className = "option pad";
+        el.appendChild(pad);
+      }
+    }
+
+    function snapWheel(el, values, onChange) {
+      let t = null;
+      const finish = () => {
+        const y = el.scrollTop;
+        const idx = Math.round(y / ROW_H);
+        const snapped = idx * ROW_H;
+        if (snapped !== y) el.scrollTo({ top: snapped, behavior: "smooth" });
+
+        const valueIndex = Math.max(0, Math.min(values.length - 1, idx - PAD));
+        const value = values[valueIndex];
+
+        // update aria-selected
+        [...el.querySelectorAll(".option[role='option']")].forEach((opt, i) => {
+          opt.setAttribute("aria-selected", i === valueIndex ? "true" : "false");
+        });
+
+        onChange(value);
+      };
+
+      el.addEventListener("scroll", () => {
+        clearTimeout(t);
+        t = setTimeout(finish, 80);
+      }, { passive: true });
+    }
+
+    function scrollToValue(el, values, value) {
+      const valueIndex = values.indexOf(value);
+      const idx = (valueIndex < 0 ? 0 : valueIndex) + PAD;
+      el.scrollTo({ top: idx * ROW_H, behavior: "instant" });
+    }
+
+    function initWheels() {
+      const hourWheel = document.getElementById("hourWheel");
+      const minuteWheel = document.getElementById("minuteWheel");
+
+      const hours = Array.from({ length: 24 }, (_, i) => i);
+      const minutes = Array.from({ length: Math.floor(60 / MINUTE_STEP) }, (_, i) => i * MINUTE_STEP);
+
+      const now = new Date();
+      const defaultHour = state.schedule.hour ?? now.getHours();
+      const roundedMin = Math.round(now.getMinutes() / MINUTE_STEP) * MINUTE_STEP % 60;
+      const defaultMinute = state.schedule.minute ?? roundedMin;
+
+      buildWheel(hourWheel, hours, defaultHour);
+      buildWheel(minuteWheel, minutes, defaultMinute);
+
+      // snap behavior
+      snapWheel(hourWheel, hours, (v) => { state.schedule.hour = v; updatePreview(); });
+      snapWheel(minuteWheel, minutes, (v) => { state.schedule.minute = v; updatePreview(); });
+
+      // initial scroll to defaults
+      scrollToValue(hourWheel, hours, defaultHour);
+      scrollToValue(minuteWheel, minutes, defaultMinute);
+
+      // set state + preview initially
+      state.schedule.hour = defaultHour;
+      state.schedule.minute = defaultMinute;
+      updatePreview();
+    }
+
     // Schedule UI
     function openSchedule(broadcastMode=false){
       state.schedule={hour:null,minute:null,broadcastMode};
-      updatePreview(); renderTimeGrid();
+      initWheels(); // initialize the wheels each time
       els.scheduleModal.classList.add("open");
       els.scheduleModal.setAttribute("aria-hidden","false");
     }
@@ -545,25 +683,9 @@
       els.scheduleModal.classList.remove("open");
       els.scheduleModal.setAttribute("aria-hidden","true");
     }
-    function renderTimeGrid(){
-      els.hourGrid.innerHTML=""; for(let h=0;h<24;h++){
-        const btn=document.createElement("div");
-        btn.className="num"+(state.schedule.hour===h?" active":"");
-        btn.textContent=String(h).padStart(2,"0");
-        btn.onclick=()=>{state.schedule.hour=h;updatePreview();renderTimeGrid();};
-        els.hourGrid.appendChild(btn);
-      }
-      els.minuteGrid.innerHTML=""; for(let m=0;m<60;m+=5){
-        const btn=document.createElement("div");
-        btn.className="num"+(state.schedule.minute===m?" active":"");
-        btn.textContent=String(m).padStart(2,"0");
-        btn.onclick=()=>{state.schedule.minute=m;updatePreview();renderTimeGrid();};
-        els.minuteGrid.appendChild(btn);
-      }
-    }
     function updatePreview(){
       const {hour,minute}=state.schedule;
-      document.getElementById("schedulePreview").textContent =
+      els.schedulePreview.textContent =
         (hour==null||minute==null) ? "Will send at —:—" : `Will send at ${String(hour).padStart(2,"0")}:${String(minute).padStart(2,"0")}`;
     }
     function confirmSchedule(){

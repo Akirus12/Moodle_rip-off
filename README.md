@@ -8,7 +8,6 @@
    ```bash
    docker compose up --build
    ```
-
 3. Visit [http://localhost:8000](http://localhost:8000) to see the "Hello, world!" page.
 
 To stop the server, press `Ctrl+C` or run `docker compose down`.
