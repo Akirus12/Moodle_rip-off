@@ -14,6 +14,7 @@ We are building a small LMS-like file system with roles (**student, teacher, adm
 * **Libraries:** keep minimal; only Django + requests + argon2 (if needed). No HTMX/React/etc.
 * **Style:** type-annotated Python, PEP8, clear separation of concerns, small functions.
 * **Testing:** Django TestCase + minimal integration tests for each use case.
+* **Environment:** ALWAYS use the virtual environment located at `.venv/`. All Python commands must use `.venv/bin/python` and all pip commands must use `.venv/bin/pip`.
 
 ## High-level goals
 
@@ -212,7 +213,7 @@ Moodle_rip-off/
 
 * Fully working Django project with migrations, seeds, and minimal templates.
 * `.env.example` with `VIRUSTOTAL_API_KEY=`, `DEBUG=`, `SECRET_KEY=`.
-* `README.md` with setup, run, and test instructions (`python manage.py runserver`).
+* `README.md` with setup, run, and test instructions (using `.venv/bin/python manage.py runserver`).
 * A short SECURITY.md listing key controls (hashing, CSRF, permissions, content-type checks).
 
 ## Acceptance criteria
