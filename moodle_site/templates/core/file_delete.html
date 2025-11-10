@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Delete File | Moodle Lite{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+  <main class="dashboard">
+    <section class="panel" style="max-width: 600px; margin: 0 auto;">
+      <h1 style="margin-bottom: 2rem; color: #dc3545;">Delete File</h1>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 8px; background: {% if message.tags == 'error' %}#fee;{% elif message.tags == 'success' %}#efe;{% else %}#eef;{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+        <strong>⚠️ Warning:</strong> This action cannot be undone. All associated shares will also be deleted.
+      </div>
+
+      <div style="margin-bottom: 2rem;">
+        <p><strong>File:</strong> {{ file.name }}</p>
+        <p><strong>Size:</strong> {{ file.size|filesizeformat }}</p>
+        <p><strong>Uploaded:</strong> {{ file.date_uploaded|date:"M d, Y" }}</p>
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem;">
+            {{ form.confirm }}
+            <span>I confirm I want to delete this file</span>
+          </label>
+          {% if form.confirm.errors %}
+            <p style="color: red; margin-top: 0.25rem;">{{ form.confirm.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+          <button type="submit" class="btn" style="background: #dc3545; color: white;">Delete File</button>
+          <a href="{% url 'core:file_detail' file.id %}" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </section>
+  </main>
+</div>
+{% endblock %}

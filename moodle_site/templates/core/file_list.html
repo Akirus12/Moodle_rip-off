@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Files | Moodle Lite{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+  <main class="dashboard">
+    <section class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>My Files</h1>
+        <a href="{% url 'core:file_upload' %}" class="btn btn-primary">Upload File</a>
+      </div>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 8px; background: {% if message.tags == 'error' %}#fee;{% elif message.tags == 'success' %}#efe;{% else %}#eef;{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {% if files %}
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 2px solid #ddd;">
+              <th style="padding: 0.75rem; text-align: left;">Name</th>
+              <th style="padding: 0.75rem; text-align: left;">Extension</th>
+              <th style="padding: 0.75rem; text-align: left;">Size</th>
+              <th style="padding: 0.75rem; text-align: left;">Uploaded</th>
+              <th style="padding: 0.75rem; text-align: left;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for file in files %}
+              <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 0.75rem;">
+                  <a href="{% url 'core:file_detail' file.id %}" style="color: #0066cc; text-decoration: none;">
+                    {{ file.name }}
+                  </a>
+                </td>
+                <td style="padding: 0.75rem;">{{ file.extension|upper }}</td>
+                <td style="padding: 0.75rem;">{{ file.size|filesizeformat }}</td>
+                <td style="padding: 0.75rem;">{{ file.date_uploaded|date:"M d, Y" }}</td>
+                <td style="padding: 0.75rem;">
+                  <a href="{% url 'core:file_detail' file.id %}" style="margin-right: 0.5rem;">View</a>
+                  <a href="{% url 'core:file_retrieve' file.id %}?download=true">Download</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p style="text-align: center; padding: 3rem; color: #666;">
+          No files uploaded yet. <a href="{% url 'core:file_upload' %}">Upload your first file</a>
+        </p>
+      {% endif %}
+    </section>
+  </main>
+</div>
+{% endblock %}

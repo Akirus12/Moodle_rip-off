@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Shared File | Moodle Lite{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+  <main class="dashboard">
+    <section class="panel">
+      <h1 style="margin-bottom: 2rem;">📎 Shared File</h1>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 8px; background: {% if message.tags == 'error' %}#fee;{% elif message.tags == 'success' %}#efe;{% else %}#eef;{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <h2 style="margin-bottom: 1rem;">{{ file.name }}</h2>
+
+      <div style="background: #f9f9f9; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+        <table style="width: 100%;">
+          <tr><td style="padding: 0.5rem 0;"><strong>File Type:</strong></td><td>{{ file.extension|upper }}</td></tr>
+          <tr><td style="padding: 0.5rem 0;"><strong>Size:</strong></td><td>{{ size_formatted }}</td></tr>
+          <tr><td style="padding: 0.5rem 0;"><strong>Uploaded:</strong></td><td>{{ file.date_uploaded|date:"M d, Y" }}</td></tr>
+          {% if file.description %}
+            <tr><td style="padding: 0.5rem 0;"><strong>Description:</strong></td><td>{{ file.description }}</td></tr>
+          {% endif %}
+        </table>
+      </div>
+
+      {% if can_download %}
+        <div style="margin-bottom: 2rem;">
+          <a href="{% url 'core:share_download' share.url_uuid %}" class="btn btn-primary">Download File</a>
+        </div>
+      {% else %}
+        <p style="color: #666;">You don't have permission to download this file.</p>
+      {% endif %}
+
+      <p style="color: #999; font-size: 0.875rem;">
+        This file has been accessed {{ share.access_count }} time{{ share.access_count|pluralize }}.
+      </p>
+    </section>
+  </main>
+</div>
+{% endblock %}
