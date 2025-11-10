@@ -21,6 +21,7 @@ AUTH_USER_MODEL = 'core.User'
 # VirusTotal API Configuration
 VIRUSTOTAL_API_KEY = os.getenv("VIRUSTOTAL_API_KEY", "")
 VIRUSTOTAL_API_URL = "https://www.virustotal.com/api/v3/"
+DISABLE_VIRUSTOTAL = os.getenv("DISABLE_VIRUSTOTAL", "False") == "True"
 
 # File upload settings
 MAX_FILE_SIZE = 200 * 1024 * 1024  # 200 MB in bytes

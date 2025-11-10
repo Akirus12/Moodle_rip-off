@@ -24,12 +24,13 @@ class VirusTotalService:
     def __init__(self):
         self.api_key = settings.VIRUSTOTAL_API_KEY
         self.api_url = settings.VIRUSTOTAL_API_URL
+        self.disabled = getattr(settings, 'DISABLE_VIRUSTOTAL', False)
         self.headers = {
             "x-apikey": self.api_key,
             "Accept": "application/json",
         }
 
-        if not self.api_key:
+        if not self.disabled and not self.api_key:
             raise VirusTotalError(
                 "VIRUSTOTAL_API_KEY not configured in settings"
             )
@@ -54,6 +55,19 @@ class VirusTotalService:
         Raises:
             VirusTotalError: If the API request fails or times out
         """
+        # Bypass mode for testing
+        if self.disabled:
+            return False, {
+                "malicious": 0,
+                "suspicious": 0,
+                "harmless": 1,
+                "undetected": 0,
+                "timeout": 0,
+                "status": "completed",
+                "analysis_date": 0,
+                "bypass": True,
+            }, "bypass-mode-no-scan"
+
         try:
             # Upload file for scanning
             upload_url = f"{self.api_url}files"
