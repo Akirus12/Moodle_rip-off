@@ -3,7 +3,7 @@ Permission checking service for file access control.
 
 Implements the permission logic based on user roles and file share settings.
 """
-from typing import Optional
+from typing import Optional, Tuple
 from django.utils import timezone
 from core.models import User, File, FileShare, PermissionLevel, Role
 
@@ -272,7 +272,3 @@ def require_permission(
             raise PermissionDenied(
                 f"Authentication required to {action} this file"
             )
-
-
-# Import Tuple for type hint
-from typing import Tuple
