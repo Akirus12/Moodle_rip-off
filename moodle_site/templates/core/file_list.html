@@ -7,7 +7,15 @@
   <main class="dashboard">
     <section class="panel">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1>My Files</h1>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <a href="{% url 'home' %}" style="color: #666; text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to Dashboard
+          </a>
+          <h1 style="margin: 0;">My Files</h1>
+        </div>
         <a href="{% url 'core:file_upload' %}" class="btn btn-primary">Upload File</a>
       </div>
 
