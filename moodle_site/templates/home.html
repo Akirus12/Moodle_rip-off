@@ -39,23 +39,24 @@
 
     <!-- Cards Section -->
     <section class="cards-grid">
-      <!-- Get Started Card -->
+      <!-- File Management Card -->
       <article class="card">
-        <h2 class="card-title">Get started</h2>
+        <h2 class="card-title">File Management</h2>
         <p class="card-text">
-          Kick things off by creating or enrolling in your first course. A clean layout keeps
-          resources and deadlines in one place.
+          Upload, manage, and share files securely. All uploads are scanned with VirusTotal for
+          malware protection. Create shareable links with optional passwords.
         </p>
         <div class="actions">
-          <a href="#" class="btn btn-primary">
+          <a href="{% url 'core:file_upload' %}" class="btn btn-primary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
             </svg>
-            New course
+            Upload File
           </a>
-          <a href="#" class="btn btn-secondary">
-            Browse catalog
+          <a href="{% url 'core:file_list' %}" class="btn btn-secondary">
+            View Files
           </a>
         </div>
       </article>

@@ -4,15 +4,28 @@ Django settings for the Moodle rip-off project.
 Generated manually for a Docker-based development environment.
 """
 
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "dev-secret-key-change-me"
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-me")
 
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "True") == "True"
 
 ALLOWED_HOSTS: list[str] = []
+
+# Custom user model
+AUTH_USER_MODEL = 'core.User'
+
+# VirusTotal API Configuration
+VIRUSTOTAL_API_KEY = os.getenv("VIRUSTOTAL_API_KEY", "")
+VIRUSTOTAL_API_URL = "https://www.virustotal.com/api/v3/"
+DISABLE_VIRUSTOTAL = os.getenv("DISABLE_VIRUSTOTAL", "False") == "True"
+
+# File upload settings
+MAX_FILE_SIZE = 200 * 1024 * 1024  # 200 MB in bytes
+LARGE_FILE_THRESHOLD = 5 * 1024 * 1024  # 5 MB in bytes
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -21,7 +34,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "core",
     "home",
+    "administrating",
+    "assignments",
 ]
 
 MIDDLEWARE = [
@@ -74,6 +90,14 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
+]
+
+# Use Argon2 for password hashing (secure)
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
 ]
 
 LANGUAGE_CODE = "en-us"

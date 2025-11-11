@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Upload File | Moodle Lite{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+  <main class="dashboard">
+    <section class="panel">
+      <h1 style="margin-bottom: 2rem;">Upload File</h1>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 8px; background: {% if message.tags == 'error' %}#fee;{% elif message.tags == 'success' %}#efe;{% else %}#eef;{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <form method="post" enctype="multipart/form-data" style="max-width: 600px;">
+        {% csrf_token %}
+
+        <div style="margin-bottom: 1.5rem;">
+          <label for="{{ form.name.id_for_label }}" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">File Name *</label>
+          {{ form.name }}
+          {% if form.name.errors %}
+            <p style="color: red; margin-top: 0.25rem;">{{ form.name.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label for="{{ form.description.id_for_label }}" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Description</label>
+          {{ form.description }}
+          {% if form.description.errors %}
+            <p style="color: red; margin-top: 0.25rem;">{{ form.description.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label for="{{ form.file.id_for_label }}" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">File *</label>
+          {{ form.file }}
+          <p style="color: #666; font-size: 0.875rem; margin-top: 0.25rem;">Max size: 200 MB. Files larger than 5 MB will be compressed for VirusTotal scanning.</p>
+          {% if form.file.errors %}
+            <p style="color: red; margin-top: 0.25rem;">{{ form.file.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+          <button type="submit" class="btn btn-primary">Upload & Scan</button>
+          <a href="{% url 'core:file_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+
+      <div style="margin-top: 2rem; padding: 1rem; background: #f9f9f9; border-radius: 8px;">
+        <h3 style="margin-bottom: 0.5rem;">Security Notice</h3>
+        <p style="color: #666; font-size: 0.875rem;">All uploaded files are automatically scanned with VirusTotal. Files flagged as malicious will be rejected.</p>
+      </div>
+    </section>
+  </main>
+</div>
+{% endblock %}
