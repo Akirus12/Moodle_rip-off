@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "core",
     "home",
     "administrating",
+    "assignments",
 ]
 
 MIDDLEWARE = [
