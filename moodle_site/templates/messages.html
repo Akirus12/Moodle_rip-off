@@ -147,6 +147,12 @@
     </div>
   </div>
 
+  <!-- Message actions menu -->
+  <div id="msgMenu" class="msg-menu" role="menu" aria-hidden="true">
+    <button type="button" id="msgEditBtn" role="menuitem">Edit message…</button>
+    <button type="button" id="msgDeleteBtn" role="menuitem">Delete</button>
+  </div>
+
   <script>
     // role flag from server (already used to hide/show Broadcast button)
     const userIsTeacherOrAdmin = {{ is_teacher_or_admin|yesno:"true,false" }};
@@ -171,6 +177,7 @@
       activeId: "ab",
       schedule: { hour:null, minute:null, broadcastMode:false },
       broadcast: { selected: new Set() },
+      ui: { msgMenu: { open:false, forMsgId:null, forContactId:null } }
     };
 
     const els = {
@@ -193,6 +200,10 @@
       broadcastStep2: document.getElementById("broadcastStep2"),
       broadcastContactList: document.getElementById("broadcastContactList"),
       broadcastText: document.getElementById("broadcastText"),
+      // message menu
+      msgMenu: document.getElementById("msgMenu"),
+      msgEditBtn: document.getElementById("msgEditBtn"),
+      msgDeleteBtn: document.getElementById("msgDeleteBtn"),
     };
 
     if (!userIsTeacherOrAdmin && els.btnBroadcast) {
@@ -235,7 +246,8 @@
       const c = state.contacts.find(c=>c.id===id);
       if (c) c.unread=0;
       renderHeader(); renderContacts(els.search.value); renderChat();
-      document.getElementById("messageInput").focus();
+      els.messageInput.focus();
+      hideMsgMenu();
     }
 
     function renderHeader(){
@@ -253,8 +265,13 @@
       c.messages.forEach(m=>{
         const b = document.createElement("div");
         b.className = "bubble " + (m.from==="me" ? "from-me":"from-them");
+        b.dataset.msgId = m.id;
+        b.dataset.from = m.from;
+        b.tabIndex = (m.from==="me") ? 0 : -1; // focusable for your own messages
+        const editedMark = m.edited ? `<span>• edited</span>` : "";
+        const scheduledMark = m.scheduled ? `<span>• scheduled</span>` : "";
         b.innerHTML = `<div>${escapeHtml(m.text).replace(/\n/g,"<br>")}</div>
-                       <div class="meta"><span>${m.at}</span>${m.scheduled?`<span>• scheduled</span>`:""}</div>`;
+                       <div class="meta"><span>${m.at}</span>${scheduledMark}${editedMark}</div>`;
         els.chat.appendChild(b);
       });
       els.chat.scrollTop = els.chat.scrollHeight;
@@ -262,7 +279,7 @@
 
     function sendMessage(e){
       e.preventDefault();
-      const ta = document.getElementById("messageInput");
+      const ta = els.messageInput;
       const text = ta.value.trim(); if(!text) return;
       const c = state.contacts.find(x=>x.id===state.activeId); if(!c) return;
       const at = nowHHMM();
@@ -272,61 +289,41 @@
     }
 
     // ===== Phone-style wheel time picker =====
-    const MINUTE_STEP = 5;          // set to 1 for every minute
-    const ROW_H = 36;               // must match CSS .option height
-    const VISIBLE_ROWS = 7;         // must match CSS calc(7 * 36px)
+    const MINUTE_STEP = 5;
+    const ROW_H = 36;
+    const VISIBLE_ROWS = 7;
     const PAD = Math.floor(VISIBLE_ROWS / 2);
 
     function buildWheel(el, values, selected) {
       el.innerHTML = "";
-
-      // padding top
-      for (let i = 0; i < PAD; i++) {
-        const pad = document.createElement("div");
-        pad.className = "option pad";
-        el.appendChild(pad);
-      }
-
-      values.forEach(v => {
-        const d = document.createElement("div");
-        d.className = "option";
-        d.textContent = String(v).padStart(2, "0");
-        d.setAttribute("role", "option");
-        d.setAttribute("aria-selected", v === selected ? "true" : "false");
-        el.appendChild(d);
-      });
-
-      // padding bottom
-      for (let i = 0; i < PAD; i++) {
-        const pad = document.createElement("div");
-        pad.className = "option pad";
-        el.appendChild(pad);
+      for (let i = 0; i < PAD; i++) el.appendChild(newOption(true));
+      values.forEach(v => el.appendChild(newOption(false, v, v === selected)));
+      for (let i = 0; i < PAD; i++) el.appendChild(newOption(true));
+      function newOption(pad, v, sel){
+        const d=document.createElement("div");
+        d.className = "option" + (pad ? " pad": "");
+        if(!pad){
+          d.textContent = String(v).padStart(2,"0");
+          d.setAttribute("role","option");
+          d.setAttribute("aria-selected", sel ? "true":"false");
+        }
+        return d;
       }
     }
 
     function snapWheel(el, values, onChange) {
-      let t = null;
-      const finish = () => {
-        const y = el.scrollTop;
-        const idx = Math.round(y / ROW_H);
-        const snapped = idx * ROW_H;
-        if (snapped !== y) el.scrollTo({ top: snapped, behavior: "smooth" });
-
-        const valueIndex = Math.max(0, Math.min(values.length - 1, idx - PAD));
-        const value = values[valueIndex];
-
-        // update aria-selected
-        [...el.querySelectorAll(".option[role='option']")].forEach((opt, i) => {
-          opt.setAttribute("aria-selected", i === valueIndex ? "true" : "false");
-        });
-
+      let t=null;
+      const finish=()=>{
+        const y=el.scrollTop;
+        const idx=Math.round(y/ROW_H);
+        const snapped=idx*ROW_H;
+        if (snapped!==y) el.scrollTo({top:snapped,behavior:"smooth"});
+        const valueIndex=Math.max(0,Math.min(values.length-1,idx-PAD));
+        const value=values[valueIndex];
+        [...el.querySelectorAll(".option[role='option']")].forEach((opt,i)=>opt.setAttribute("aria-selected", i===valueIndex?"true":"false"));
         onChange(value);
       };
-
-      el.addEventListener("scroll", () => {
-        clearTimeout(t);
-        t = setTimeout(finish, 80);
-      }, { passive: true });
+      el.addEventListener("scroll", ()=>{ clearTimeout(t); t=setTimeout(finish,80); }, {passive:true});
     }
 
     function scrollToValue(el, values, value) {
@@ -338,27 +335,18 @@
     function initWheels() {
       const hourWheel = document.getElementById("hourWheel");
       const minuteWheel = document.getElementById("minuteWheel");
-
       const hours = Array.from({ length: 24 }, (_, i) => i);
       const minutes = Array.from({ length: Math.floor(60 / MINUTE_STEP) }, (_, i) => i * MINUTE_STEP);
-
       const now = new Date();
       const defaultHour = state.schedule.hour ?? now.getHours();
       const roundedMin = Math.round(now.getMinutes() / MINUTE_STEP) * MINUTE_STEP % 60;
       const defaultMinute = state.schedule.minute ?? roundedMin;
-
       buildWheel(hourWheel, hours, defaultHour);
       buildWheel(minuteWheel, minutes, defaultMinute);
-
-      // snap behavior
       snapWheel(hourWheel, hours, (v) => { state.schedule.hour = v; updatePreview(); });
       snapWheel(minuteWheel, minutes, (v) => { state.schedule.minute = v; updatePreview(); });
-
-      // initial scroll to defaults
       scrollToValue(hourWheel, hours, defaultHour);
       scrollToValue(minuteWheel, minutes, defaultMinute);
-
-      // set state + preview initially
       state.schedule.hour = defaultHour;
       state.schedule.minute = defaultMinute;
       updatePreview();
@@ -367,7 +355,7 @@
     // Schedule UI
     function openSchedule(broadcastMode=false){
       state.schedule={hour:null,minute:null,broadcastMode};
-      initWheels(); // initialize the wheels each time
+      initWheels();
       els.scheduleModal.classList.add("open");
       els.scheduleModal.setAttribute("aria-hidden","false");
     }
@@ -388,10 +376,10 @@
         toast(`Scheduled broadcast for ${at} (UI only).`);
       } else {
         const c = state.contacts.find(x=>x.id===state.activeId); if(!c) return;
-        const text = document.getElementById("messageInput").value.trim() || "(scheduled message)";
+        const text = els.messageInput.value.trim() || "(scheduled message)";
         c.messages.push({id:Date.now(),from:"me",text,at,scheduled:true});
         c.lastPreview=text; renderContacts(els.search.value); renderChat();
-        document.getElementById("messageInput").value="";
+        els.messageInput.value="";
       }
       closeSchedule();
     }
@@ -452,6 +440,94 @@
       toast(`Broadcast sent to ${state.broadcast.selected.size} contact(s).`);
       closeBroadcast();
     }
+
+    // ===== Message menu logic (Edit/Delete for your own messages) =====
+    els.chat.addEventListener("click", (e) => {
+      const bubble = e.target.closest(".bubble.from-me");
+      if (!bubble) { hideMsgMenu(); return; }
+      const msgId = bubble.dataset.msgId;
+      showMsgMenuAt(bubble, msgId);
+    });
+
+    // Also allow keyboard (Enter/Space) on focused own bubble
+    els.chat.addEventListener("keydown", (e) => {
+      if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("from-me")) {
+        e.preventDefault();
+        const bubble = e.target;
+        const msgId = bubble.dataset.msgId;
+        showMsgMenuAt(bubble, msgId);
+      }
+    });
+
+    function showMsgMenuAt(bubbleEl, msgId){
+      const cId = state.activeId;
+      state.ui.msgMenu = { open:true, forMsgId: msgId, forContactId: cId };
+      const rect = bubbleEl.getBoundingClientRect();
+      const menu = els.msgMenu;
+      // position near bottom-right of the bubble (viewport coords)
+      const top = Math.min(window.innerHeight - 10, rect.bottom + 6);
+      const left = Math.min(window.innerWidth - 10, rect.right - 140); // menu width ~140
+      Object.assign(menu.style, { top: `${top}px`, left: `${left}px` });
+      menu.classList.add("open");
+      menu.setAttribute("aria-hidden","false");
+      // focus first item for a11y
+      els.msgEditBtn.focus();
+    }
+
+    function hideMsgMenu(){
+      const menu = els.msgMenu;
+      menu.classList.remove("open");
+      menu.setAttribute("aria-hidden","true");
+      menu.style.top = "-9999px";   // <— move off-screen
+      menu.style.left = "-9999px";  // <— move off-screen
+      state.ui.msgMenu = { open:false, forMsgId:null, forContactId:null };
+    }
+
+    // Click outside to close
+    document.addEventListener("click", (e)=>{
+      if (!state.ui.msgMenu.open) return;
+      if (!e.target.closest("#msgMenu") && !e.target.closest(".bubble.from-me")) hideMsgMenu();
+    });
+
+    // Edit action
+    els.msgEditBtn.addEventListener("click", ()=>{
+      const { forMsgId, forContactId } = state.ui.msgMenu;
+      if (!forMsgId || !forContactId) return hideMsgMenu();
+      const c = state.contacts.find(x=>x.id===forContactId); if(!c) return hideMsgMenu();
+      const i = c.messages.findIndex(m=>String(m.id)===String(forMsgId));
+      if (i<0) return hideMsgMenu();
+      const current = c.messages[i].text;
+      const next = prompt("Edit your message:", current);
+      if (next === null) return; // cancelled
+      const trimmed = next.trim();
+      if (!trimmed) {
+        // empty input => treat as delete? Safer: keep and just ignore
+        toast("Message not changed (empty).");
+        return hideMsgMenu();
+      }
+      c.messages[i].text = trimmed;
+      c.messages[i].edited = true;
+      c.lastPreview = trimmed;
+      renderContacts(els.search.value);
+      renderChat();
+      hideMsgMenu();
+    });
+
+    // Delete action
+    els.msgDeleteBtn.addEventListener("click", ()=>{
+      const { forMsgId, forContactId } = state.ui.msgMenu;
+      if (!forMsgId || !forContactId) return hideMsgMenu();
+      const c = state.contacts.find(x=>x.id===forContactId); if(!c) return hideMsgMenu();
+      const idx = c.messages.findIndex(m=>String(m.id)===String(forMsgId));
+      if (idx<0) return hideMsgMenu();
+      c.messages.splice(idx,1);              // hard delete from UI state
+      // update preview to last message text if any
+      const last = c.messages[c.messages.length-1];
+      c.lastPreview = last ? last.text : "";
+      renderContacts(els.search.value);
+      renderChat();
+      hideMsgMenu();
+    });
 
     // Helpers / events
     document.getElementById("search").addEventListener("input", e=>renderContacts(e.target.value));
