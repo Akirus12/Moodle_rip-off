@@ -1,11 +1,109 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Hello, world!</title>
-  </head>
-  <body>
-    <h1>Hello, world!</h1>
-    <p>Welcome to the Moodle rip-off prototype.</p>
-  </body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard | Moodle Lite{% endblock %}
+
+{% block content %}
+<div class="admin-wrapper">
+  <div class="admin-container">
+    <section class="header">
+      <div class="brand">
+        <div class="brand-icon">∞</div>
+        <h2 class="brand-text">Admin Dashboard</h2>
+      </div>
+      <p class="text-muted">Manage users, monitor courses, and export statistics.</p>
+    </section>
+
+    <!-- User Management -->
+    <section class="panel">
+      <h3>User Management</h3>
+      <table class="data-table" id="user-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Placeholder rows -->
+          <tr>
+            <td>1</td>
+            <td>Jane Doe</td>
+            <td>jane@example.com</td>
+            <td>Student</td>
+            <td>
+              <button class="btn btn-small" onclick="viewUser(1)">View</button>
+              <button class="btn btn-small" onclick="editUser(1)">Edit</button>
+              <button class="btn btn-danger btn-small" onclick="removeUser(1)">Remove</button>
+            </td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>John Smith</td>
+            <td>john@example.com</td>
+            <td>Teacher</td>
+            <td>
+              <button class="btn btn-small" onclick="viewUser(2)">View</button>
+              <button class="btn btn-small" onclick="editUser(2)">Edit</button>
+              <button class="btn btn-danger btn-small" onclick="removeUser(2)">Remove</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Reports -->
+    <section class="panel">
+      <h3>Course Enrollment Reports</h3>
+      <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+      <div id="report-output" class="report-output text-muted">
+        No report generated yet.
+      </div>
+    </section>
+
+    <!-- Grade Statistics -->
+    <section class="panel">
+      <h3>Grade Statistics</h3>
+      <button class="btn btn-primary" onclick="exportGrades()">Export Grades</button>
+      <div id="grades-output" class="text-muted">
+        Statistics will appear here once exported.
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function viewUser(id) {
+    alert(`Viewing details for user #${id}`);
+  }
+
+  function editUser(id) {
+    const name = prompt("Enter new name for user #" + id);
+    if (name) alert(`Updated name to '${name}'`);
+  }
+
+  function removeUser(id) {
+    if (confirm("Are you sure you want to remove this user?")) {
+      document.querySelector(`#user-table tr:nth-child(${id + 1})`).remove();
+      alert("User removed.");
+    }
+  }
+
+  function generateReport() {
+    const reportDiv = document.getElementById("report-output");
+    reportDiv.textContent =
+      "Generated report:\n\n- Course: Web Development 101\n- Enrolled: 25 students\n- Completed: 19 students\n- Active: 6 students";
+  }
+
+  function exportGrades() {
+    const gradesDiv = document.getElementById("grades-output");
+    gradesDiv.textContent =
+      "Grade export complete. Average: 82%, Highest: 98%, Lowest: 45%.";
+    alert("Grades exported successfully (mock).");
+  }
+</script>
+{% endblock %}
