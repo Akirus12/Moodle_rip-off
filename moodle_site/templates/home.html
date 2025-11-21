@@ -40,25 +40,26 @@
     <!-- Cards Section -->
     <section class="cards-grid">
       <!-- Get Started Card -->
-      <article class="card">
-        <h2 class="card-title">Get started</h2>
-        <p class="card-text">
-          Kick things off by creating or enrolling in your first course. A clean layout keeps
-          resources and deadlines in one place.
-        </p>
-        <div class="actions">
-          <a href="#" class="btn btn-primary">
+      <!-- Get Started Card -->
+<article class="card">
+    <h2 class="card-title">Get started</h2>
+    <p class="card-text">
+        Kick things off by creating or enrolling in your first course. A clean layout keeps
+        resources and deadlines in one place.
+    </p>
+    <div class="actions">
+        <a href="/admin/" class="btn btn-primary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
             New course
-          </a>
-          <a href="#" class="btn btn-secondary">
+        </a>
+        <a href="{% url 'courses:courses_list' %}" class="btn btn-secondary">
             Browse catalog
-          </a>
-        </div>
-      </article>
+        </a>
+    </div>
+</article>
 
       <!-- Stay in the Loop Card -->
       <article class="card">

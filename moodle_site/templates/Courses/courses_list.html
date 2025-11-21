@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Courses{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Available Courses</h1>
+    
+    {% if courses %}
+        <div class="courses-grid">
+            {% for course in courses %}
+                <div class="course-card">
+                    <h2><a href="{% url 'courses:course_detail' course.id %}">{{ course.title }}</a></h2>
+                    <p class="course-instructor">Instructor: {{ course.instructor.get_full_name|default:course.instructor.username }}</p>
+                    <p class="course-description">{{ course.description|truncatewords:30 }}</p>
+                    <p class="course-date">Created: {{ course.created_at|date:"M d, Y" }}</p>
+                    <a href="{% url 'courses:course_detail' course.id %}" class="btn">View Course</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No courses available at the moment.</p>
+    {% endif %}
+</div>
+
+<style>
+    .courses-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    
+    .course-card {
+        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 8px;
+        background: #fff;
+    }
+    
+    .course-card h2 {
+        margin-top: 0;
+        font-size: 1.5em;
+    }
+    
+    .course-card h2 a {
+        text-decoration: none;
+        color: #333;
+    }
+    
+    .course-card h2 a:hover {
+        color: #007bff;
+    }
+    
+    .course-instructor {
+        color: #666;
+        font-size: 0.9em;
+        margin: 10px 0;
+    }
+    
+    .course-description {
+        margin: 15px 0;
+        line-height: 1.6;
+    }
+    
+    .course-date {
+        font-size: 0.85em;
+        color: #999;
+    }
+    
+    .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        background: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        margin-top: 10px;
+    }
+    
+    .btn:hover {
+        background: #0056b3;
+    }
+</style>
+{% endblock %}
