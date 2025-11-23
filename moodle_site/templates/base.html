@@ -108,6 +108,7 @@
                 <li><a href="/">Home</a></li>
                 <li><a href="{% url 'courses:courses_list' %}">Courses</a></li>
                 {% if user.is_authenticated %}
+                    <li><a href="{% url 'messaging:page' %}">Messaging</a></li>
                     <li><a href="/admin/">Admin Panel</a></li>
                 {% else %}
                     <li><a href="/login/">Login</a></li>

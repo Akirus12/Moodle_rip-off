@@ -13,6 +13,6 @@ urlpatterns = [
     path("assignments/", include("assignments.urls")),
     # Core file management
     path("", include("core.urls")),
-    path("messages/", include("messaging.urls")),
+    path("messages/", include("messaging.urls", namespace="messaging")),
     path("courses/", include("courses.urls")),
 ]
