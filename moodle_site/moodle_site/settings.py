@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "administrating",
     "assignments",
     "messaging",
+    "courses",
 ]
 
 MIDDLEWARE = [
