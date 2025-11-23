@@ -13,7 +13,12 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-me")
 
 DEBUG = os.getenv("DEBUG", "True") == "True"
 
-ALLOWED_HOSTS: list[str] = []
+allowed_hosts_env = os.getenv("ALLOWED_HOSTS", "*")
+ALLOWED_HOSTS: list[str] = (
+    ["*"]
+    if allowed_hosts_env == "*"
+    else [host.strip() for host in allowed_hosts_env.split(",") if host.strip()]
+)
 
 # Custom user model
 AUTH_USER_MODEL = 'core.User'
