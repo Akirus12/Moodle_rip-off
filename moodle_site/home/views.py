@@ -5,6 +5,10 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 
+from messaging.models import DirectMessage
+from django.db.models import Q
+from django.utils import timezone
+
 from .forms import LoginForm, RegisterForm
 
 
@@ -55,6 +59,18 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def home(request: HttpRequest) -> HttpResponse:
-    """Render the landing page."""
-    return render(request, "home.html")
+def home(request):
+    user = request.user
+
+    unread_count = (
+        DirectMessage.objects.filter(
+            recipient=user,
+            is_scheduled=False,          # scheduled messages not visible yet
+            deleted_by_recipient_at__isnull=True,
+            is_read=False                # unseen messages
+        ).count()
+    )
+
+    return render(request, "home.html", {
+        "unread_count": unread_count,
+    })

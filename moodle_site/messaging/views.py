@@ -1,5 +1,3 @@
-# messaging/views.py
-
 from __future__ import annotations
 
 import datetime
@@ -13,7 +11,7 @@ from django.utils import timezone
 
 from datetime import datetime, time, timedelta
 
-from core.models import Role  # from your core app
+from core.models import Role
 from .models import DirectMessage, Broadcast, BroadcastRecipient
 
 User = get_user_model()
@@ -73,6 +71,18 @@ def messages_page(request):
             .select_related("sender", "recipient")
             .order_by("created_at")
         )
+
+        incoming_qs = DirectMessage.objects.filter(
+            sender=active_contact,
+            recipient=user,
+            deleted_by_recipient_at__isnull=True,
+        ).filter(
+            Q(is_scheduled=False) | Q(is_scheduled=True, scheduled_for__lte=now)
+        )
+
+        unread_incoming = incoming_qs.filter(is_read=False)
+        if unread_incoming.exists():
+            unread_incoming.update(is_read=True, read_at=now)
 
     context = {
         "contacts": contacts,

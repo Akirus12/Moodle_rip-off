@@ -1,12 +1,10 @@
-# messaging/models.py
-
 from __future__ import annotations
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from core.models import Course, Role  # reuse your existing core models
+from core.models import Course, Role
 
 
 User = settings.AUTH_USER_MODEL

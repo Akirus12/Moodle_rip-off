@@ -1,4 +1,4 @@
-// static/messages/messages.js
+// for in-place update/delete
 
 document.addEventListener("DOMContentLoaded", () => {
   const cfg = window.MESSAGING_CONFIG || {};
