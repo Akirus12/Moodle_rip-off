@@ -14,4 +14,5 @@ urlpatterns = [
 
     # Core file management
     path("", include("core.urls")),
+    path("messages/", include("messaging.urls")),
 ]
