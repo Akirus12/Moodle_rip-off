@@ -15,4 +15,5 @@ urlpatterns = [
     path("", include("core.urls")),
     path("messages/", include("messaging.urls")),
     path("courses/", include("courses.urls")),
+    path("administrating/", include("administrating.urls")) 
 ]
