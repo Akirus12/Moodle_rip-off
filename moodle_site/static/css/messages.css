@@ -344,3 +344,8 @@
 }
 .msg-menu button:hover { background: rgba(59,130,246,.12); }
 .bubble.from-me { cursor: pointer; }
+
+.bubble.scheduled-hidden {
+  display: none;
+}
+

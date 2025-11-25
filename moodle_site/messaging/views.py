@@ -81,53 +81,28 @@ def messages_page(request):
     if active_contact:
         now = timezone.now()
 
-        # 1) Release scheduled messages *to me* that are now due
-        DirectMessage.objects.filter(
-            recipient=user,
-            is_scheduled=True,
-            is_delivered=False,
-            scheduled_for__isnull=False,
-            scheduled_for__lte=now,
-        ).update(is_delivered=True)
-
-        # 2) Full thread between current user and active_contact
-        thread_messages = (
-            DirectMessage.objects.filter(
-                # Messages I sent to them (including future scheduled)
-                (
-                    Q(sender=user, recipient=active_contact)
-                    & Q(deleted_by_sender_at__isnull=True)
-                )
-                |
-                # Messages they sent to me:
-                # - normal (not scheduled), OR
-                # - scheduled and has been "delivered" (is_delivered=True)
-                (
-                    Q(sender=active_contact, recipient=user)
-                    & Q(deleted_by_recipient_at__isnull=True)
-                    & (
-                        Q(is_scheduled=False)
-                        | Q(is_scheduled=True, is_delivered=True)
-                    )
-                )
-            )
-            .select_related("sender", "recipient")
-            .order_by("created_at")
+        outgoing_qs = DirectMessage.objects.filter(
+            sender=user,
+            recipient=active_contact,
+            deleted_by_sender_at__isnull=True,
         )
 
-        # 3) Mark incoming *visible* messages as read
-        incoming_qs = DirectMessage.objects.filter(
+        incoming_visible_qs = DirectMessage.objects.filter(
             sender=active_contact,
             recipient=user,
             deleted_by_recipient_at__isnull=True,
         ).filter(
-            Q(is_scheduled=False) | Q(is_scheduled=True, is_delivered=True)
+            Q(scheduled_for__isnull=True) | Q(scheduled_for__lte=now)
         )
 
-        unread_incoming = incoming_qs.filter(is_read=False)
+        thread_messages = (
+            outgoing_qs
+            | incoming_visible_qs
+        ).select_related("sender", "recipient").order_by("created_at")
+
+        unread_incoming = incoming_visible_qs.filter(is_read=False)
         if unread_incoming.exists():
             unread_ids = list(unread_incoming.values_list("id", flat=True))
-
             DirectMessage.objects.filter(
                 id__in=unread_ids,
                 is_read=False,
@@ -149,21 +124,19 @@ def send_message(request):
     """
     AJAX endpoint to send or schedule a direct message.
 
-    Expected POST:
+    POST:
       - recipient_id
       - text
       - is_scheduled: "0" or "1"
       - scheduled_for: "HH:MM" (only if is_scheduled == "1")
-
-    Returns JSON:
-      { ok, id, time }
     """
     if request.method != "POST" or not request.headers.get("x-requested-with"):
         raise Http404
 
     user = request.user
     recipient_id = request.POST.get("recipient_id")
-    text = (request.POST.get("text") or "").strip()
+    raw_text = request.POST.get("text") or ""
+    text = raw_text.strip()
     is_scheduled_flag = request.POST.get("is_scheduled") == "1"
     scheduled_for_str = (request.POST.get("scheduled_for") or "").strip()
 
@@ -175,19 +148,17 @@ def send_message(request):
 
     recipient = get_object_or_404(User, pk=recipient_id, is_active=True)
 
-    # --- parse and build scheduled_for datetime (if requested) ---
     scheduled_for = None
+    is_scheduled = False
+
     if is_scheduled_flag:
         if not scheduled_for_str:
             return JsonResponse(
                 {"ok": False, "error": "Schedule time is required."},
                 status=400,
             )
-
         try:
-            parsed_time: time = datetime.strptime(
-                scheduled_for_str, "%H:%M"
-            ).time()
+            parsed_time: time = datetime.strptime(scheduled_for_str, "%H:%M").time()
         except ValueError:
             return JsonResponse(
                 {
@@ -199,27 +170,18 @@ def send_message(request):
 
         today = timezone.localdate()
         naive_dt = datetime.combine(today, parsed_time)
-
-        aware_dt = timezone.make_aware(
+        scheduled_for = timezone.make_aware(
             naive_dt,
             timezone.get_current_timezone(),
         )
+        is_scheduled = True
 
-        # If it's already in the past, schedule for tomorrow
-        if aware_dt <= timezone.now():
-            aware_dt += timedelta(days=1)
-
-        scheduled_for = aware_dt
-
-    # --- create the DirectMessage (chat) ---
     dm = DirectMessage.objects.create(
         sender=user,
         recipient=recipient,
         text=text,
-        is_scheduled=bool(scheduled_for),
+        is_scheduled=is_scheduled,
         scheduled_for=scheduled_for,
-        # is_delivered stays default=True (for immediate) or
-        # you can set False here if you ever implement a scheduler
     )
 
     subject = f"New message from {user.get_full_name() or user.username}"
@@ -228,7 +190,7 @@ def send_message(request):
         body=text,
         created_by=user,
         scheduled_for=scheduled_for,
-        is_sent=(scheduled_for is None),
+        is_sent=True,
         target_role=None,
         target_course=None,
     )
@@ -237,8 +199,8 @@ def send_message(request):
         message=sys_msg,
     )
 
-    # Time label to return to frontend
-    if dm.is_scheduled and dm.scheduled_for:
+    # Время для отображения на клиенте
+    if dm.scheduled_for:
         local_scheduled = timezone.localtime(dm.scheduled_for)
         at_display = local_scheduled.strftime("%H:%M")
     else:
@@ -330,16 +292,24 @@ def broadcast_message(request):
     Expected POST:
       - text
       - recipients[]  (list of user IDs)
+      - is_scheduled: "0" or "1" (optional)
+      - scheduled_for: "HH:MM" (only if is_scheduled == "1")
 
-    JSON:
-      { ok, error?, broadcast_id, count }
+    Behaviour:
+      - Messages are always stored.
+      - If scheduled_for is set, visibility to recipients is controlled
+        by scheduled_for <= now in messages_page (same as direct messages).
     """
     if request.method != "POST" or not request.headers.get("x-requested-with"):
         raise Http404
 
     user = request.user
-    text = (request.POST.get("text") or "").strip()
+    raw_text = request.POST.get("text") or ""
+    text = raw_text.strip()
     recipient_ids = request.POST.getlist("recipients[]")
+
+    is_scheduled_flag = request.POST.get("is_scheduled") == "1"
+    scheduled_for_str = (request.POST.get("scheduled_for") or "").strip()
 
     if not text or not recipient_ids:
         return JsonResponse(
@@ -352,33 +322,65 @@ def broadcast_message(request):
         .exclude(id=user.id)
         .distinct()
     )
-
     if not recipients_qs.exists():
         return JsonResponse({"ok": False, "error": "No valid recipients"}, status=400)
 
-    broadcast = Broadcast.objects.create(sender=user, text=text)
-    now = timezone.now()
-    created_count = 0
+    scheduled_for = None
+    is_scheduled = False
 
-    # System-level broadcast notification
+    if is_scheduled_flag:
+        if not scheduled_for_str:
+            return JsonResponse(
+                {"ok": False, "error": "Schedule time is required."},
+                status=400,
+            )
+        try:
+            parsed_time: time = datetime.strptime(scheduled_for_str, "%H:%M").time()
+        except ValueError:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "error": "Invalid time format. Use HH:MM (e.g. 15:20).",
+                },
+                status=400,
+            )
+        today = timezone.localdate()
+        naive_dt = datetime.combine(today, parsed_time)
+        scheduled_for = timezone.make_aware(
+            naive_dt,
+            timezone.get_current_timezone(),
+        )
+        is_scheduled = True
+
+    broadcast = Broadcast.objects.create(
+        sender=user,
+        text=text,
+        scheduled_for=scheduled_for,
+        is_sent=True,
+    )
+
     sys_subject = f"Broadcast from {user.get_full_name() or user.username}"
     sys_msg = SystemMessage.objects.create(
         subject=sys_subject,
         body=text,
         created_by=user,
         is_sent=True,
-        scheduled_for=None,
+        scheduled_for=scheduled_for,
         target_role=None,
         target_course=None,
     )
+
+    created_count = 0
+    now = timezone.now()
 
     for u in recipients_qs:
         dm = DirectMessage.objects.create(
             sender=user,
             recipient=u,
             text=text,
-            created_at=now,
-            is_delivered=True,
+            is_scheduled=is_scheduled,
+            scheduled_for=scheduled_for,
+            # is_delivered ignored for visibility
         )
         BroadcastRecipient.objects.create(
             broadcast=broadcast,

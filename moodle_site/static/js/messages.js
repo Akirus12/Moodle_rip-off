@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
     broadcastText: document.getElementById("broadcastText"),
   };
 
-  const state = {
+    const state = {
     msgMenu: { open: false, msgId: null },
     schedule: { hour: null, minute: null, broadcastMode: false },
     broadcast: { selected: new Set() },
@@ -356,6 +356,15 @@ document.addEventListener("DOMContentLoaded", () => {
     els.scheduleModal.classList.add("open");
     els.scheduleModal.setAttribute("aria-hidden", "false");
   }
+
+  window.openScheduleFromBroadcast = () => {
+    if (els.broadcastModal) {
+      els.broadcastModal.classList.remove("open");
+      els.broadcastModal.setAttribute("aria-hidden", "true");
+    }
+    openScheduleInternal(true);
+  };
+
 
   function closeScheduleInternal() {
     if (!els.scheduleModal) return;

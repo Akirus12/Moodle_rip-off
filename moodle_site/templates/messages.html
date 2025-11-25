@@ -110,8 +110,17 @@
               <div>{{ m.text|linebreaksbr }}</div>
               <div class="meta">
                 <span>{{ m.created_at|time:"H:i" }}</span>
-                {% if m.is_scheduled %}<span>• scheduled</span>{% endif %}
-                {% if m.edited_at %}<span>• edited</span>{% endif %}
+                {% if m.is_scheduled %}
+                  <span>
+                    • scheduled
+                    {% if m.scheduled_for %}
+                      for {{ m.scheduled_for|time:"H:i" }}
+                    {% endif %}
+                  </span>
+                {% endif %}
+                {% if m.edited_at %}
+                  <span>• edited</span>
+                {% endif %}
               </div>
             </div>
           {% empty %}
@@ -220,7 +229,7 @@
         </div>
         <div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px;">
           <button class="btn ghost icon-btn" type="button" title="schedule a message"
-                  onclick="openSchedule(true)">
+                  onclick="openScheduleFromBroadcast()">
             <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
               <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
