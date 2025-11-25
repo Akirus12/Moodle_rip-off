@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}{{ file.name }} | Moodle Lite{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+  <main class="dashboard">
+    <section class="panel">
+      <div style="margin-bottom: 2rem;">
+        <a href="{% url 'core:file_list' %}" style="color: #0066cc; text-decoration: none;">&larr; Back to Files</a>
+      </div>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 8px; background: {% if message.tags == 'error' %}#fee;{% elif message.tags == 'success' %}#efe;{% else %}#eef;{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <h1 style="margin-bottom: 1rem;">{{ file.name }}</h1>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+        <div>
+          <h3 style="margin-bottom: 1rem;">File Information</h3>
+          <table style="width: 100%;">
+            <tr><td style="padding: 0.5rem 0;"><strong>Extension:</strong></td><td>{{ file.extension|upper }}</td></tr>
+            <tr><td style="padding: 0.5rem 0;"><strong>Size:</strong></td><td>{{ size_formatted }}</td></tr>
+            <tr><td style="padding: 0.5rem 0;"><strong>Uploaded:</strong></td><td>{{ file.date_uploaded|date:"M d, Y H:i" }}</td></tr>
+            <tr><td style="padding: 0.5rem 0;"><strong>Uploaded by:</strong></td><td>{{ file.uploaded_by.username }}</td></tr>
+            <tr><td style="padding: 0.5rem 0;"><strong>Views:</strong></td><td>{{ file.view_count }}</td></tr>
+            <tr><td style="padding: 0.5rem 0;"><strong>Checksum:</strong></td><td style="font-family: monospace; font-size: 0.75rem;">{{ file.checksum_hash|truncatechars:16 }}</td></tr>
+          </table>
+        </div>
+
+        <div>
+          <h3 style="margin-bottom: 1rem;">Security Scan</h3>
+          <p style="padding: 0.75rem; background: {% if file.is_malicious %}#fee;{% else %}#efe;{% endif %} border-radius: 8px;">
+            <strong>Status:</strong> {% if file.is_malicious %}⚠️ Malicious{% else %}✓ Clean{% endif %}
+          </p>
+          {% if file.virustotal_scan_date %}
+            <p style="color: #666; font-size: 0.875rem; margin-top: 0.5rem;">
+              Scanned: {{ file.virustotal_scan_date|date:"M d, Y H:i" }}
+            </p>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if file.description %}
+        <div style="margin-bottom: 2rem;">
+          <h3 style="margin-bottom: 0.5rem;">Description</h3>
+          <p style="color: #666;">{{ file.description }}</p>
+        </div>
+      {% endif %}
+
+      <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+        {% if can_download %}
+          <a href="{% url 'core:file_retrieve' file.id %}?download=true" class="btn btn-primary">Download</a>
+        {% endif %}
+        {% if can_share %}
+          <a href="{% url 'core:file_share_create' file.id %}" class="btn btn-secondary">Create Share Link</a>
+        {% endif %}
+        {% if can_delete %}
+          <a href="{% url 'core:file_delete' file.id %}" class="btn" style="background: #dc3545; color: white;">Delete</a>
+        {% endif %}
+      </div>
+
+      {% if shares %}
+        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #ddd;">
+          <h3 style="margin-bottom: 1rem;">Share Links</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 2px solid #ddd;">
+                <th style="padding: 0.75rem; text-align: left;">Link</th>
+                <th style="padding: 0.75rem; text-align: left;">Protected</th>
+                <th style="padding: 0.75rem; text-align: left;">Expires</th>
+                <th style="padding: 0.75rem; text-align: left;">Access Count</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for share in shares %}
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="padding: 0.75rem;">
+                    <a href="{% url 'core:share_access' share.url_uuid %}" style="font-family: monospace; font-size: 0.875rem;">
+                      /s/{{ share.url_uuid|truncatechars:12 }}
+                    </a>
+                  </td>
+                  <td style="padding: 0.75rem;">{% if share.is_password_protected %}🔒 Yes{% else %}No{% endif %}</td>
+                  <td style="padding: 0.75rem;">{% if share.expiration_date %}{{ share.expiration_date|date:"M d, Y" }}{% else %}Never{% endif %}</td>
+                  <td style="padding: 0.75rem;">{{ share.access_count }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+  </main>
+</div>
+{% endblock %}

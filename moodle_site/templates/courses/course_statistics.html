@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Course Statistics: {{ course.title }}</h1>
+
+    <div class="progress mb-4">
+        <div class="progress-bar" role="progressbar"
+             style="width: {{ completion_percentage }}%"
+             aria-valuenow="{{ completion_percentage }}"
+             aria-valuemin="0"
+             aria-valuemax="100">
+            {{ completion_percentage }}%
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h3>Completed Materials</h3>
+            <ul class="list-group">
+                {% for material in completed_materials %}
+                <li class="list-group-item">
+                    ✅ {{ material.title }}
+                </li>
+                {% empty %}
+                <li class="list-group-item">No materials completed yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="col-md-6">
+            <h3>Remaining Materials</h3>
+            <ul class="list-group">
+                {% for material in remaining_materials %}
+                <li class="list-group-item">
+                    ⏳ {{ material.title }}
+                </li>
+                {% empty %}
+                <li class="list-group-item">All materials completed!</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{% url 'courses:course_detail' course.id %}" class="btn btn-primary">
+            Back to Course
+        </a>
+    </div>
+</div>
+<style>
+    body {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+        min-height: 100vh;
+    }
+
+    .container {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 30px;
+        margin-top: 30px;
+        backdrop-filter: blur(10px);
+    }
+
+    .list-group-item {
+        background-color: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .progress {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-primary {
+        background-color: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-primary:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+</style>
+{% endblock %}

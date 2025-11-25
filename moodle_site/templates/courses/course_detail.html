@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}{{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="course-header">
+        <a href="{% url 'courses:courses_list' %}" class="back-link">&larr; Back to Courses</a>
+        <h1>{{ course.title }}</h1>
+        <p class="course-instructor">Instructor: {{ course.instructor.get_full_name|default:course.instructor.username }}</p>
+        
+        {% if completion_percentage is not None %}
+        <!-- Add completion progress bar -->
+        <div class="completion-progress">
+            <h4>Course Progress</h4>
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" 
+                     style="width: {{ completion_percentage }}%"
+                     aria-valuenow="{{ completion_percentage }}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                    {{ completion_percentage }}%
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <p class="course-description">{{ course.description }}</p>
+    </div>
+    
+    <div class="materials-section">
+        <h2>Course Materials</h2>
+        
+        {% if materials %}
+            <div class="materials-list">
+                {% for material in materials %}
+                    <div class="material-item">
+                        <div class="material-type-badge">{{ material.get_material_type_display }}</div>
+                        <h3><a href="{% url 'courses:material_detail' material.id %}">{{ material.title }}</a></h3>
+                        {% if material.description %}
+                            <p>{{ material.description|truncatewords:20 }}</p>
+                        {% endif %}
+                        <a href="{% url 'courses:material_detail' material.id %}" class="btn-small">View Material</a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No materials have been added to this course yet.</p>
+        {% endif %}
+        <a href="{% url 'courses:course_statistics' course.id %}" class="btn btn-info">
+            View Course Statistics
+        </a>
+
+    </div>
+</div>
+
+<style>
+    body {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+        min-height: 100vh;
+    }
+
+    .container {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 30px;
+        margin-top: 30px;
+        backdrop-filter: blur(10px);
+    }
+
+    .material-item {
+        background-color: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .material-item h3 a {
+        color: white;
+    }
+
+    .course-instructor {
+        color: #e0e0e0;
+    }
+
+    .back-link {
+        color: white;
+    }
+
+    .back-link:hover {
+        color: #e0e0e0;
+    }
+
+    .course-header {
+        margin-bottom: 40px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #eee;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    .course-header h1 {
+        margin: 10px 0;
+    }
+
+    .course-instructor {
+        color: #666;
+        font-size: 1.1em;
+        margin: 10px 0;
+    }
+
+    .course-description {
+        margin: 20px 0;
+        line-height: 1.6;
+        font-size: 1.1em;
+    }
+
+    .materials-section h2 {
+        margin-bottom: 20px;
+    }
+
+    .materials-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .material-item {
+        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 8px;
+        background: #fff;
+        position: relative;
+    }
+
+    .material-type-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        background: #007bff;
+        color: white;
+        border-radius: 4px;
+        font-size: 0.85em;
+        margin-bottom: 10px;
+    }
+
+    .material-item h3 {
+        margin: 10px 0;
+    }
+
+    .material-item h3 a {
+        text-decoration: none;
+        color: #333;
+    }
+
+    .material-item h3 a:hover {
+        color: #007bff;
+    }
+
+    .btn-small {
+        display: inline-block;
+        padding: 8px 16px;
+        background: #28a745;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        margin-top: 10px;
+        font-size: 0.9em;
+    }
+
+    .btn-small:hover {
+        background: #218838;
+    }
+
+    /* Add these styles */
+    .completion-progress {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+    }
+
+    .completion-progress h4 {
+        margin-bottom: 10px;
+        color: white;
+    }
+
+    .progress {
+        height: 25px;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+    }
+
+    .progress-bar {
+        background-color: #28a745;
+        line-height: 25px;
+        font-weight: bold;
+        border-radius: 15px;
+    }
+</style>
+{% endblock %}
