@@ -1,3 +1,4 @@
+{# templates/messages.html #}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,6 +10,21 @@
   <link rel="stylesheet" href="{% static 'css/messages.css' %}">
 </head>
 <body class="messages-page">
+
+  <a href="{% url 'home' %}" class="btn ghost" style="
+            margin-right: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+        ">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
+              stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"></path>
+          </svg>
+          Back
+        </a>
+
   <div class="container">
     <!-- Left -->
     <aside class="hero">
@@ -24,7 +40,26 @@
         <div class="search">
           <input id="search" type="text" placeholder="Search contacts…" aria-label="Search contacts" />
         </div>
-        <div id="contacts" class="contacts" role="listbox" aria-label="Contacts list"></div>
+        <div id="contacts" class="contacts" role="listbox" aria-label="Contacts list">
+          {% for c in contacts %}
+            <button
+              type="button"
+              class="contact{% if active_contact and c.id == active_contact.id %} active{% endif %}"
+              data-contact-id="{{ c.id }}"
+            >
+              <div class="avatar">
+                {{ c.get_initials|default:c.username|first|upper }}
+              </div>
+              <div>
+                <h4>{{ c.get_full_name|default:c.username }}</h4>
+                <p>&nbsp;</p>
+              </div>
+              <div class="badge" style="visibility:hidden;"></div>
+            </button>
+          {% empty %}
+            <p style="padding:0.5rem;color:var(--muted);">No contacts yet.</p>
+          {% endfor %}
+        </div>
       </div>
     </aside>
 
@@ -32,10 +67,24 @@
     <section class="panel">
       <header class="chat-header">
         <div class="who" id="chat-who">
-          <div class="avatar">?</div>
+          <div class="avatar">
+            {% if active_contact %}
+              {{ active_contact.get_initials|default:active_contact.username|first|upper }}
+            {% else %}
+              ?
+            {% endif %}
+          </div>
           <div>
-            <h3 id="chat-name">Select a contact</h3>
-            <small id="chat-status">—</small>
+            <h3 id="chat-name">
+              {% if active_contact %}
+                {{ active_contact.get_full_name|default:active_contact.username }}
+              {% else %}
+                Select a contact
+              {% endif %}
+            </h3>
+            <small id="chat-status">
+              {% if active_contact %}Last seen recently{% else %}—{% endif %}
+            </small>
           </div>
         </div>
         <div class="brand">
@@ -44,19 +93,57 @@
         </div>
       </header>
 
-      <main id="chat" class="messages" aria-live="polite">
+      <main
+        id="chat"
+        class="messages"
+        aria-live="polite"
+        data-active-contact-id="{% if active_contact %}{{ active_contact.id }}{% else %}0{% endif %}"
+      >
         <div class="day-divider">Today</div>
-        <p style="color:var(--muted);text-align:center;margin:0.5rem 0 1rem;">
-          Choose a contact to view messages.
-        </p>
+        {% if active_contact %}
+          {% for m in messages %}
+            <div
+              class="bubble {% if m.sender_id == request.user.id %}from-me{% else %}from-them{% endif %}"
+              data-msg-id="{{ m.id }}"
+              {% if m.sender_id == request.user.id %}tabindex="0"{% endif %}
+            >
+              <div>{{ m.text|linebreaksbr }}</div>
+              <div class="meta">
+                <span>{{ m.created_at|time:"H:i" }}</span>
+                {% if m.is_scheduled %}
+                  <span>
+                    • scheduled
+                    {% if m.scheduled_for %}
+                      for {{ m.scheduled_for|time:"H:i" }}
+                    {% endif %}
+                  </span>
+                {% endif %}
+                {% if m.edited_at %}
+                  <span>• edited</span>
+                {% endif %}
+              </div>
+            </div>
+          {% empty %}
+            <p style="color:var(--muted);text-align:center;margin:0.5rem 0 1rem;">
+              No messages yet. Say hi!
+            </p>
+          {% endfor %}
+        {% else %}
+          <p style="color:var(--muted);text-align:center;margin:0.5rem 0 1rem;">
+            Choose a contact to view messages.
+          </p>
+        {% endif %}
       </main>
 
-      <form class="composer" id="composer" onsubmit="sendMessage(event)" method="post">
+      <form class="composer" id="composer" method="post">
         {% csrf_token %}
+        <input type="hidden" name="recipient_id" id="recipientId"
+               value="{% if active_contact %}{{ active_contact.id }}{% endif %}">
         <textarea id="messageInput" placeholder="Write a message…" aria-label="Message input"></textarea>
 
         <!-- Schedule -->
-        <button id="btnSchedule" type="button" class="btn ghost icon-btn" title="schedule a message" aria-label="Schedule a message">
+        <button id="btnSchedule" type="button" class="btn ghost icon-btn"
+                title="schedule a message" aria-label="Schedule a message">
           <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
             <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -64,7 +151,7 @@
           <span>Schedule</span>
         </button>
 
-        <!-- Broadcast (role-controlled) -->
+        <!-- Broadcast -->
         <button id="btnBroadcast" type="button" class="btn ghost icon-btn"
                 {% if not is_teacher_or_admin %}style="display:none"{% endif %}
                 aria-label="Broadcast message">
@@ -75,29 +162,35 @@
           <span>Broadcast</span>
         </button>
 
-        <button type="submit" class="btn primary">Send</button>
+        <button type="submit" class="btn primary" {% if not active_contact %}disabled{% endif %}>
+          Send
+        </button>
       </form>
     </section>
   </div>
 
-  <!-- Schedule modal (phone-style wheel) -->
+    <!-- Schedule modal (simple arrows) -->
   <div class="modal" id="scheduleModal" aria-hidden="true" role="dialog" aria-label="Schedule message">
     <div class="dialog">
       <h3>Schedule message</h3>
 
-      <div class="timepicker">
-        <div class="picker-overlay" aria-hidden="true"></div>
-
+      <div class="timepicker simple-timepicker">
+        <!-- Hours -->
         <div class="picker-col">
           <div class="picker-label">Hour</div>
-          <div class="wheel" id="hourWheel" role="listbox" aria-label="Pick hour"></div>
+          <button type="button" class="picker-arrow" id="hourUp">▲</button>
+          <div class="picker-value" id="hourValue">00</div>
+          <button type="button" class="picker-arrow" id="hourDown">▼</button>
         </div>
 
         <div class="colon">:</div>
 
+        <!-- Minutes -->
         <div class="picker-col">
           <div class="picker-label">Minute</div>
-          <div class="wheel" id="minuteWheel" role="listbox" aria-label="Pick minute"></div>
+          <button type="button" class="picker-arrow" id="minuteUp">▲</button>
+          <div class="picker-value" id="minuteValue">00</div>
+          <button type="button" class="picker-arrow" id="minuteDown">▼</button>
         </div>
       </div>
 
@@ -109,12 +202,13 @@
     </div>
   </div>
 
+
   <!-- Broadcast wizard -->
   <div class="modal" id="broadcastModal" aria-hidden="true" role="dialog" aria-label="Broadcast message">
     <div class="dialog">
       <div class="wizard-steps">
         <div class="step" id="bwStep1">1. Select contacts</div>
-        <div class="step" id="bwStep2">2. Compose & send</div>
+        <div class="step" id="bwStep2">2. Compose &amp; send</div>
       </div>
 
       <div id="broadcastStep1">
@@ -127,10 +221,15 @@
 
       <div id="broadcastStep2" style="display:none">
         <div class="row">
-          <textarea id="broadcastText" placeholder="Write a message to selected contacts…" style="flex:1;min-height:100px;padding:12px 14px;border-radius:12px;border:1px solid rgba(148,163,184,.25);background:rgba(15,23,42,.65);color:var(--text);"></textarea>
+          <textarea
+            id="broadcastText"
+            placeholder="Write a message to selected contacts…"
+            style="flex:1;min-height:100px;padding:12px 14px;border-radius:12px;border:1px solid rgba(148,163,184,.25);background:rgba(15,23,42,.65);color:var(--text);"
+          ></textarea>
         </div>
         <div class="row" style="justify-content:flex-end;gap:8px;margin-top:10px;">
-          <button class="btn ghost icon-btn" type="button" title="schedule a message" onclick="openSchedule(true)">
+          <button class="btn ghost icon-btn" type="button" title="schedule a message"
+                  onclick="openScheduleFromBroadcast()">
             <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
               <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -153,400 +252,17 @@
     <button type="button" id="msgDeleteBtn" role="menuitem">Delete</button>
   </div>
 
+  {# Minimal inline config, all logic in static JS #}
   <script>
-    // role flag from server (already used to hide/show Broadcast button)
-    const userIsTeacherOrAdmin = {{ is_teacher_or_admin|yesno:"true,false" }};
-
-    // Mock data (UI only)
-    const state = {
-      contacts: [
-        { id:"ab", name:"AB", initials:"AB", online:true, unread:2,
-          lastPreview:"c.",
-          messages:[
-            {id:1,from:"them",text:"a?",at:"09:18"},
-            {id:2,from:"me",text:"b",at:"09:20"},
-            {id:3,from:"them",text:"c",at:"11:02"},
-          ]},
-        { id:"cd", name:"CD", initials:"CD", online:false, unread:0,
-          lastPreview:"b.",
-          messages:[
-            {id:1,from:"me",text:"a.",at:"16:42"},
-            {id:2,from:"them",text:"b.",at:"16:45"},
-          ]},
-      ],
-      activeId: "ab",
-      schedule: { hour:null, minute:null, broadcastMode:false },
-      broadcast: { selected: new Set() },
-      ui: { msgMenu: { open:false, forMsgId:null, forContactId:null } }
+    window.MESSAGING_CONFIG = {
+      sendUrl: "{% url 'messaging:send_message' %}",
+      editUrlTemplate: "{% url 'messaging:edit_message' 0 %}".replace(/0\/$/, ""),
+      deleteUrlTemplate: "{% url 'messaging:delete_message' 0 %}".replace(/0\/$/, ""),
+      broadcastUrl: "{% url 'messaging:broadcast_message' %}",
+      csrfToken: "{{ csrf_token }}",
+      isTeacherOrAdmin: {{ is_teacher_or_admin|yesno:"true,false" }}
     };
-
-    const els = {
-      contacts: document.getElementById("contacts"),
-      chat: document.getElementById("chat"),
-      chatName: document.getElementById("chat-name"),
-      chatStatus: document.getElementById("chat-status"),
-      chatWho: document.getElementById("chat-who"),
-      messageInput: document.getElementById("messageInput"),
-      search: document.getElementById("search"),
-      btnBroadcast: document.getElementById("btnBroadcast"),
-      // schedule modal
-      scheduleModal: document.getElementById("scheduleModal"),
-      schedulePreview: document.getElementById("schedulePreview"),
-      // broadcast modal
-      broadcastModal: document.getElementById("broadcastModal"),
-      bwStep1: document.getElementById("bwStep1"),
-      bwStep2: document.getElementById("bwStep2"),
-      broadcastStep1: document.getElementById("broadcastStep1"),
-      broadcastStep2: document.getElementById("broadcastStep2"),
-      broadcastContactList: document.getElementById("broadcastContactList"),
-      broadcastText: document.getElementById("broadcastText"),
-      // message menu
-      msgMenu: document.getElementById("msgMenu"),
-      msgEditBtn: document.getElementById("msgEditBtn"),
-      msgDeleteBtn: document.getElementById("msgDeleteBtn"),
-    };
-
-    if (!userIsTeacherOrAdmin && els.btnBroadcast) {
-      els.btnBroadcast.style.display = "none";
-    }
-
-    function renderContacts(filter=""){
-      els.contacts.innerHTML = "";
-      state.contacts
-        .filter(c => c.name.toLowerCase().includes(filter.toLowerCase()))
-        .forEach(c => {
-          const item = document.createElement("button");
-          item.type = "button";
-          item.className = "contact" + (state.activeId===c.id ? " active" : "");
-          item.onclick = () => setActive(c.id);
-
-          const avatar = document.createElement("div");
-          avatar.className="avatar"; avatar.textContent=c.initials;
-          if (c.online) { const d=document.createElement("span"); d.className="dot"; avatar.appendChild(d); }
-
-          const info = document.createElement("div");
-          const h4 = document.createElement("h4"); h4.textContent=c.name;
-          const p = document.createElement("p"); p.textContent=c.lastPreview || "\u00A0";
-          info.append(h4,p);
-
-          const badge = document.createElement("div");
-          badge.className="badge"; badge.style.visibility = c.unread ? "visible":"hidden";
-          badge.textContent = c.unread || "";
-
-          item.append(avatar, info, badge);
-          els.contacts.appendChild(item);
-        });
-    }
-
-    function setActive(id){
-      state.activeId = id;
-      [...els.contacts.children].forEach(el=>el.classList.remove("active"));
-      const idx = state.contacts.findIndex(c=>c.id===id);
-      if (idx>=0 && els.contacts.children[idx]) els.contacts.children[idx].classList.add("active");
-      const c = state.contacts.find(c=>c.id===id);
-      if (c) c.unread=0;
-      renderHeader(); renderContacts(els.search.value); renderChat();
-      els.messageInput.focus();
-      hideMsgMenu();
-    }
-
-    function renderHeader(){
-      const c = state.contacts.find(x=>x.id===state.activeId); if(!c) return;
-      els.chatName.textContent = c.name;
-      els.chatStatus.textContent = c.online ? "Online" : "Last seen recently";
-      els.chatWho.querySelector(".avatar").textContent = c.initials;
-    }
-
-    function renderChat(){
-      const c = state.contacts.find(x=>x.id===state.activeId); if(!c) return;
-      els.chat.innerHTML = "";
-      const div = document.createElement("div"); div.className="day-divider"; div.textContent="Today";
-      els.chat.appendChild(div);
-      c.messages.forEach(m=>{
-        const b = document.createElement("div");
-        b.className = "bubble " + (m.from==="me" ? "from-me":"from-them");
-        b.dataset.msgId = m.id;
-        b.dataset.from = m.from;
-        b.tabIndex = (m.from==="me") ? 0 : -1; // focusable for your own messages
-        const editedMark = m.edited ? `<span>• edited</span>` : "";
-        const scheduledMark = m.scheduled ? `<span>• scheduled</span>` : "";
-        b.innerHTML = `<div>${escapeHtml(m.text).replace(/\n/g,"<br>")}</div>
-                       <div class="meta"><span>${m.at}</span>${scheduledMark}${editedMark}</div>`;
-        els.chat.appendChild(b);
-      });
-      els.chat.scrollTop = els.chat.scrollHeight;
-    }
-
-    function sendMessage(e){
-      e.preventDefault();
-      const ta = els.messageInput;
-      const text = ta.value.trim(); if(!text) return;
-      const c = state.contacts.find(x=>x.id===state.activeId); if(!c) return;
-      const at = nowHHMM();
-      c.messages.push({id:Date.now(),from:"me",text,at});
-      c.lastPreview=text; ta.value="";
-      renderContacts(els.search.value); renderChat();
-    }
-
-    // ===== Phone-style wheel time picker =====
-    const MINUTE_STEP = 5;
-    const ROW_H = 36;
-    const VISIBLE_ROWS = 7;
-    const PAD = Math.floor(VISIBLE_ROWS / 2);
-
-    function buildWheel(el, values, selected) {
-      el.innerHTML = "";
-      for (let i = 0; i < PAD; i++) el.appendChild(newOption(true));
-      values.forEach(v => el.appendChild(newOption(false, v, v === selected)));
-      for (let i = 0; i < PAD; i++) el.appendChild(newOption(true));
-      function newOption(pad, v, sel){
-        const d=document.createElement("div");
-        d.className = "option" + (pad ? " pad": "");
-        if(!pad){
-          d.textContent = String(v).padStart(2,"0");
-          d.setAttribute("role","option");
-          d.setAttribute("aria-selected", sel ? "true":"false");
-        }
-        return d;
-      }
-    }
-
-    function snapWheel(el, values, onChange) {
-      let t=null;
-      const finish=()=>{
-        const y=el.scrollTop;
-        const idx=Math.round(y/ROW_H);
-        const snapped=idx*ROW_H;
-        if (snapped!==y) el.scrollTo({top:snapped,behavior:"smooth"});
-        const valueIndex=Math.max(0,Math.min(values.length-1,idx-PAD));
-        const value=values[valueIndex];
-        [...el.querySelectorAll(".option[role='option']")].forEach((opt,i)=>opt.setAttribute("aria-selected", i===valueIndex?"true":"false"));
-        onChange(value);
-      };
-      el.addEventListener("scroll", ()=>{ clearTimeout(t); t=setTimeout(finish,80); }, {passive:true});
-    }
-
-    function scrollToValue(el, values, value) {
-      const valueIndex = values.indexOf(value);
-      const idx = (valueIndex < 0 ? 0 : valueIndex) + PAD;
-      el.scrollTo({ top: idx * ROW_H, behavior: "instant" });
-    }
-
-    function initWheels() {
-      const hourWheel = document.getElementById("hourWheel");
-      const minuteWheel = document.getElementById("minuteWheel");
-      const hours = Array.from({ length: 24 }, (_, i) => i);
-      const minutes = Array.from({ length: Math.floor(60 / MINUTE_STEP) }, (_, i) => i * MINUTE_STEP);
-      const now = new Date();
-      const defaultHour = state.schedule.hour ?? now.getHours();
-      const roundedMin = Math.round(now.getMinutes() / MINUTE_STEP) * MINUTE_STEP % 60;
-      const defaultMinute = state.schedule.minute ?? roundedMin;
-      buildWheel(hourWheel, hours, defaultHour);
-      buildWheel(minuteWheel, minutes, defaultMinute);
-      snapWheel(hourWheel, hours, (v) => { state.schedule.hour = v; updatePreview(); });
-      snapWheel(minuteWheel, minutes, (v) => { state.schedule.minute = v; updatePreview(); });
-      scrollToValue(hourWheel, hours, defaultHour);
-      scrollToValue(minuteWheel, minutes, defaultMinute);
-      state.schedule.hour = defaultHour;
-      state.schedule.minute = defaultMinute;
-      updatePreview();
-    }
-
-    // Schedule UI
-    function openSchedule(broadcastMode=false){
-      state.schedule={hour:null,minute:null,broadcastMode};
-      initWheels();
-      els.scheduleModal.classList.add("open");
-      els.scheduleModal.setAttribute("aria-hidden","false");
-    }
-    function closeSchedule(){
-      els.scheduleModal.classList.remove("open");
-      els.scheduleModal.setAttribute("aria-hidden","true");
-    }
-    function updatePreview(){
-      const {hour,minute}=state.schedule;
-      els.schedulePreview.textContent =
-        (hour==null||minute==null) ? "Will send at —:—" : `Will send at ${String(hour).padStart(2,"0")}:${String(minute).padStart(2,"0")}`;
-    }
-    function confirmSchedule(){
-      const {hour,minute,broadcastMode}=state.schedule;
-      if (hour==null||minute==null) return;
-      const at = `${String(hour).padStart(2,"0")}:${String(minute).padStart(2,"0")}`;
-      if (broadcastMode){
-        toast(`Scheduled broadcast for ${at} (UI only).`);
-      } else {
-        const c = state.contacts.find(x=>x.id===state.activeId); if(!c) return;
-        const text = els.messageInput.value.trim() || "(scheduled message)";
-        c.messages.push({id:Date.now(),from:"me",text,at,scheduled:true});
-        c.lastPreview=text; renderContacts(els.search.value); renderChat();
-        els.messageInput.value="";
-      }
-      closeSchedule();
-    }
-
-    // Broadcast UI
-    function openBroadcast(){
-      state.broadcast.selected=new Set();
-      document.getElementById("bwStep1").classList.add("active");
-      document.getElementById("bwStep2").classList.remove("active");
-      document.getElementById("broadcastStep1").style.display="";
-      document.getElementById("broadcastStep2").style.display="none";
-      renderBroadcastContactList();
-      els.broadcastModal.classList.add("open"); els.broadcastModal.setAttribute("aria-hidden","false");
-    }
-    function closeBroadcast(){
-      els.broadcastModal.classList.remove("open"); els.broadcastModal.setAttribute("aria-hidden","true");
-    }
-    function gotoBroadcastStep2(){
-      document.getElementById("bwStep1").classList.remove("active");
-      document.getElementById("bwStep2").classList.add("active");
-      document.getElementById("broadcastStep1").style.display="none";
-      document.getElementById("broadcastStep2").style.display="";
-      document.getElementById("broadcastText").focus();
-    }
-    function gotoBroadcastStep1(){
-      document.getElementById("bwStep1").classList.add("active");
-      document.getElementById("bwStep2").classList.remove("active");
-      document.getElementById("broadcastStep1").style.display="";
-      document.getElementById("broadcastStep2").style.display="none";
-    }
-    function renderBroadcastContactList(){
-      els.broadcastContactList.innerHTML="";
-      state.contacts.forEach(c=>{
-        const row=document.createElement("div"); row.className="item";
-        const cb=document.createElement("input"); cb.type="checkbox"; cb.id=`bsel-${c.id}`;
-        cb.onchange=()=>{ cb.checked ? state.broadcast.selected.add(c.id) : state.broadcast.selected.delete(c.id); };
-        const label=document.createElement("label"); label.htmlFor=cb.id;
-        const av=document.createElement("div"); av.className="avatar"; av.style.width="28px"; av.style.height="28px"; av.style.borderRadius="8px"; av.textContent=c.initials;
-        const name=document.createElement("div"); name.textContent=c.name;
-        label.append(av,name);
-        const status=document.createElement("small"); status.style.color="var(--muted)"; status.textContent=c.online?"Online":"Offline";
-        row.append(cb,label,status);
-        els.broadcastContactList.appendChild(row);
-      });
-    }
-    function sendBroadcast(){
-      const text=document.getElementById("broadcastText").value.trim();
-      if (!text || state.broadcast.selected.size===0){ toast("Select at least one contact and type a message."); return; }
-      const at=nowHHMM();
-      state.broadcast.selected.forEach(id=>{
-        const c=state.contacts.find(x=>x.id===id); if(!c) return;
-        c.messages.push({id:Date.now()+Math.random(),from:"me",text,at});
-        c.lastPreview=text;
-      });
-      renderContacts(els.search.value);
-      if (state.broadcast.selected.has(state.activeId)) renderChat();
-      document.getElementById("broadcastText").value="";
-      toast(`Broadcast sent to ${state.broadcast.selected.size} contact(s).`);
-      closeBroadcast();
-    }
-
-    // ===== Message menu logic (Edit/Delete for your own messages) =====
-    els.chat.addEventListener("click", (e) => {
-      const bubble = e.target.closest(".bubble.from-me");
-      if (!bubble) { hideMsgMenu(); return; }
-      const msgId = bubble.dataset.msgId;
-      showMsgMenuAt(bubble, msgId);
-    });
-
-    // Also allow keyboard (Enter/Space) on focused own bubble
-    els.chat.addEventListener("keydown", (e) => {
-      if ((e.key === "Enter" || e.key === " ") && e.target.classList.contains("from-me")) {
-        e.preventDefault();
-        const bubble = e.target;
-        const msgId = bubble.dataset.msgId;
-        showMsgMenuAt(bubble, msgId);
-      }
-    });
-
-    function showMsgMenuAt(bubbleEl, msgId){
-      const cId = state.activeId;
-      state.ui.msgMenu = { open:true, forMsgId: msgId, forContactId: cId };
-      const rect = bubbleEl.getBoundingClientRect();
-      const menu = els.msgMenu;
-      // position near bottom-right of the bubble (viewport coords)
-      const top = Math.min(window.innerHeight - 10, rect.bottom + 6);
-      const left = Math.min(window.innerWidth - 10, rect.right - 140); // menu width ~140
-      Object.assign(menu.style, { top: `${top}px`, left: `${left}px` });
-      menu.classList.add("open");
-      menu.setAttribute("aria-hidden","false");
-      // focus first item for a11y
-      els.msgEditBtn.focus();
-    }
-
-    function hideMsgMenu(){
-      const menu = els.msgMenu;
-      menu.classList.remove("open");
-      menu.setAttribute("aria-hidden","true");
-      menu.style.top = "-9999px";   // <— move off-screen
-      menu.style.left = "-9999px";  // <— move off-screen
-      state.ui.msgMenu = { open:false, forMsgId:null, forContactId:null };
-    }
-
-    // Click outside to close
-    document.addEventListener("click", (e)=>{
-      if (!state.ui.msgMenu.open) return;
-      if (!e.target.closest("#msgMenu") && !e.target.closest(".bubble.from-me")) hideMsgMenu();
-    });
-
-    // Edit action
-    els.msgEditBtn.addEventListener("click", ()=>{
-      const { forMsgId, forContactId } = state.ui.msgMenu;
-      if (!forMsgId || !forContactId) return hideMsgMenu();
-      const c = state.contacts.find(x=>x.id===forContactId); if(!c) return hideMsgMenu();
-      const i = c.messages.findIndex(m=>String(m.id)===String(forMsgId));
-      if (i<0) return hideMsgMenu();
-      const current = c.messages[i].text;
-      const next = prompt("Edit your message:", current);
-      if (next === null) return; // cancelled
-      const trimmed = next.trim();
-      if (!trimmed) {
-        // empty input => treat as delete? Safer: keep and just ignore
-        toast("Message not changed (empty).");
-        return hideMsgMenu();
-      }
-      c.messages[i].text = trimmed;
-      c.messages[i].edited = true;
-      c.lastPreview = trimmed;
-      renderContacts(els.search.value);
-      renderChat();
-      hideMsgMenu();
-    });
-
-    // Delete action
-    els.msgDeleteBtn.addEventListener("click", ()=>{
-      const { forMsgId, forContactId } = state.ui.msgMenu;
-      if (!forMsgId || !forContactId) return hideMsgMenu();
-      const c = state.contacts.find(x=>x.id===forContactId); if(!c) return hideMsgMenu();
-      const idx = c.messages.findIndex(m=>String(m.id)===String(forMsgId));
-      if (idx<0) return hideMsgMenu();
-      c.messages.splice(idx,1);              // hard delete from UI state
-      // update preview to last message text if any
-      const last = c.messages[c.messages.length-1];
-      c.lastPreview = last ? last.text : "";
-      renderContacts(els.search.value);
-      renderChat();
-      hideMsgMenu();
-    });
-
-    // Helpers / events
-    document.getElementById("search").addEventListener("input", e=>renderContacts(e.target.value));
-    document.getElementById("btnSchedule").addEventListener("click", ()=>openSchedule(false));
-    const bcBtn = document.getElementById("btnBroadcast");
-    if (bcBtn) bcBtn.addEventListener("click", openBroadcast);
-    document.getElementById("scheduleModal").addEventListener("click", e=>{ if(e.target.id==="scheduleModal") closeSchedule(); });
-    document.getElementById("broadcastModal").addEventListener("click", e=>{ if(e.target.id==="broadcastModal") closeBroadcast(); });
-
-    function nowHHMM(){ const n=new Date(); const p=v=>String(v).padStart(2,"0"); return `${p(n.getHours())}:${p(n.getMinutes())}`; }
-    function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-    function toast(msg){
-      const el=document.createElement("div"); el.textContent=msg;
-      Object.assign(el.style,{position:"fixed",bottom:"18px",left:"50%",transform:"translateX(-50%)",background:"rgba(15,23,42,.85)",color:"var(--text)",padding:"10px 14px",borderRadius:"10px",border:"1px solid rgba(148,163,184,.25)",zIndex:9999});
-      document.body.appendChild(el); setTimeout(()=>el.remove(),2200);
-    }
-
-    // init
-    renderContacts(); setActive(state.activeId);
   </script>
+  <script src="{% static 'js/messages.js' %}"></script>
 </body>
 </html>
