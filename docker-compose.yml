@@ -14,7 +14,7 @@ services:
     environment:
       - DEBUG=True
       - SECRET_KEY=dev-secret-key-for-docker-testing-only
-      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY:-}
-      - DISABLE_VIRUSTOTAL=${DISABLE_VIRUSTOTAL:-True}
+      - VIRUSTOTAL_API_KEY=5fdf8057b0686885e3990788128a2e218dc1864aa82f0d08a464b87f31b4320a
+      - DISABLE_VIRUSTOTAL=${DISABLE_VIRUSTOTAL:-False}
     stdin_open: true
     tty: true
