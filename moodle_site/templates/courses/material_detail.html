@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}{{ material.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="material-header">
+        <a href="{% url 'courses:course_detail' material.course.id %}" class="back-link">&larr; Back to {{ material.course.code }} - {{ material.course.name }}</a>
+        <div class="material-type-badge">{{ material.get_material_type_display }}</div>
+        <h1>{{ material.title }}</h1>
+        <p class="material-course">Course: <a href="{% url 'courses:course_detail' material.course.id %}">{{ material.course.code }} - {{ material.course.name }}</a></p>
+        <p class="material-date">Created: {{ material.created_at|date:"M d, Y" }}</p>
+    </div>
+    
+    <div class="material-content">
+        {% if material.description %}
+            <div class="material-description">
+                <h3>Description</h3>
+                <p>{{ material.description }}</p>
+            </div>
+        {% endif %}
+        
+        <div class="material-body">
+            {% if material.material_type == 'text' %}
+                <div class="text-content">
+                    {{ material.content|linebreaks }}
+                </div>
+            {% elif material.material_type == 'link' %}
+                <div class="link-content">
+                    <a href="{{ material.content }}" target="_blank" rel="noopener noreferrer" class="external-link">Open External Resource</a>
+                </div>
+            {% elif material.material_type == 'video' %}
+                <div class="video-content">
+                    {% if 'youtube.com' in material.content or 'youtu.be' in material.content %}
+                        <iframe width="100%" height="500" src="{{ material.content }}" frameborder="0" allowfullscreen></iframe>
+                    {% else %}
+                        <a href="{{ material.content }}" target="_blank" rel="noopener noreferrer" class="external-link">Watch Video</a>
+                    {% endif %}
+                </div>
+            {% elif material.material_type == 'pdf' %}
+                <div class="pdf-content">
+                    {% if material.file %}
+                        <a href="{{ material.file.url }}" target="_blank" class="btn">Download PDF</a>
+                    {% elif material.content %}
+                        <a href="{{ material.content }}" target="_blank" rel="noopener noreferrer" class="btn">View PDF</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        background: #1a1a1a;
+        color: #e0e0e0;
+    }
+
+    .container h1, .container h3 {
+        color: #ffffff;
+    }
+
+    .material-header {
+        margin-bottom: 40px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #333;
+    }
+    
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #00b3ff;
+        text-decoration: none;
+    }
+    
+    .back-link:hover {
+        color: #66d9ff;
+    }
+    
+    .material-type-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        background: #2196F3;
+        color: white;
+        border-radius: 4px;
+        font-size: 0.85em;
+        margin-bottom: 10px;
+    }
+    
+    .material-header h1 {
+        margin: 10px 0;
+    }
+    
+    .material-course {
+        color: #b0b0b0;
+        margin: 10px 0;
+    }
+    
+    .material-date {
+        color: #888;
+        font-size: 0.9em;
+    }
+    
+    .material-course a {
+        color: #00b3ff;
+        text-decoration: none;
+    }
+    
+    .material-course a:hover {
+        color: #66d9ff;
+    }
+    
+    .material-description {
+        background: #2a2a2a;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        border: 1px solid #333;
+    }
+    
+    .material-description h3 {
+        margin-top: 0;
+    }
+    
+    .material-body {
+        background: #2a2a2a;
+        padding: 30px;
+        border: 1px solid #333;
+        border-radius: 8px;
+        color: #e0e0e0;
+    }
+    
+    .text-content {
+        line-height: 1.8;
+        font-size: 1.1em;
+    }
+    
+    .link-content,
+    .pdf-content {
+        text-align: center;
+        padding: 40px;
+    }
+    
+    .external-link,
+    .btn {
+        display: inline-block;
+        padding: 15px 30px;
+        background: #2196F3;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 1.1em;
+        transition: background-color 0.2s;
+    }
+    
+    .external-link:hover,
+    .btn:hover {
+        background: #1976D2;
+    }
+    
+    .video-content iframe {
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+</style>
+{% endblock %}
