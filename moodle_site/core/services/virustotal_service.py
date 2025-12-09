@@ -5,7 +5,11 @@ Handles file scanning and report retrieval from VirusTotal.
 """
 import time
 from typing import Dict, Tuple, Optional
-import requests
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
 from django.conf import settings
 
 
@@ -24,7 +28,8 @@ class VirusTotalService:
     def __init__(self):
         self.api_key = settings.VIRUSTOTAL_API_KEY
         self.api_url = settings.VIRUSTOTAL_API_URL
-        self.disabled = getattr(settings, 'DISABLE_VIRUSTOTAL', False)
+        # Auto-disable if requests is not available
+        self.disabled = getattr(settings, 'DISABLE_VIRUSTOTAL', False) or not REQUESTS_AVAILABLE
         self.headers = {
             "x-apikey": self.api_key,
             "Accept": "application/json",
@@ -195,6 +200,9 @@ class VirusTotalService:
         Raises:
             VirusTotalError: If the API request fails
         """
+        if self.disabled or not REQUESTS_AVAILABLE:
+            return None
+        
         try:
             url = f"{self.api_url}files/{file_hash}"
 

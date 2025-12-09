@@ -272,7 +272,7 @@ class Assignment(models.Model):
     Assignment model with status and deadline.
     """
     course = models.ForeignKey(
-        Course,
+        'courses.Course',
         on_delete=models.CASCADE,
         related_name='assignments',
     )
@@ -304,6 +304,17 @@ class Assignment(models.Model):
         default=100.00,
         validators=[MinValueValidator(0)],
     )
+    
+    is_group_assignment = models.BooleanField(
+        default=False,
+        help_text="If True, this is a group assignment"
+    )
+    
+    is_closed = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="If True, assignment is closed and students cannot submit"
+    )
 
     class Meta:
         verbose_name = 'Assignment'
@@ -314,7 +325,193 @@ class Assignment(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"{self.title} - {self.course.code}"
+        return f"{self.title} - {self.course.title}"
+
+
+class AssignmentSubmission(models.Model):
+    """
+    Submission model for assignment submissions by students.
+    """
+    assignment = models.ForeignKey(
+        Assignment,
+        on_delete=models.CASCADE,
+        related_name='submissions',
+    )
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='assignment_submissions',
+    )
+    files = models.ManyToManyField(
+        File,
+        related_name='submissions',
+        help_text="Files submitted for this assignment"
+    )
+    submitted_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Grading fields
+    score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="Score given by teacher"
+    )
+    feedback = models.TextField(
+        blank=True,
+        help_text="Feedback from teacher"
+    )
+    graded_at = models.DateTimeField(null=True, blank=True)
+    graded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='graded_submissions',
+    )
+    
+    # Group assignment support
+    group = models.ForeignKey(
+        'AssignmentGroup',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='submissions',
+        help_text="Group this submission belongs to (if group assignment)"
+    )
+    submitted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='submitted_assignments',
+        help_text="Student who actually submitted the files"
+    )
+    
+    class Meta:
+        verbose_name = 'Assignment Submission'
+        verbose_name_plural = 'Assignment Submissions'
+        ordering = ['-submitted_at']
+        unique_together = [['assignment', 'student']]
+        indexes = [
+            models.Index(fields=['assignment', 'student']),
+            models.Index(fields=['assignment', 'submitted_at']),
+            models.Index(fields=['group', 'submitted_at']),
+        ]
+    
+    def __str__(self) -> str:
+        if self.group:
+            return f"{self.group.name} - {self.assignment.title}"
+        return f"{self.student.username} - {self.assignment.title}"
+    
+    def is_graded(self) -> bool:
+        """Check if submission has been graded."""
+        return self.score is not None
+    
+    def get_percentage(self) -> float:
+        """Get score as percentage of max_score."""
+        if self.score is None or self.assignment.max_score == 0:
+            return 0.0
+        return float(self.score / self.assignment.max_score * 100)
+
+
+class AssignmentGroup(models.Model):
+    """
+    Group model for group assignments.
+    Links multiple students together for a specific assignment.
+    """
+    assignment = models.ForeignKey(
+        Assignment,
+        on_delete=models.CASCADE,
+        related_name='groups',
+    )
+    name = models.CharField(
+        max_length=255,
+        help_text="Group name or identifier"
+    )
+    students = models.ManyToManyField(
+        User,
+        related_name='assignment_groups',
+        help_text="Students in this group"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_groups',
+        help_text="Teacher who created the group"
+    )
+    
+    class Meta:
+        verbose_name = 'Assignment Group'
+        verbose_name_plural = 'Assignment Groups'
+        ordering = ['assignment', 'name']
+        unique_together = [['assignment', 'name']]
+        indexes = [
+            models.Index(fields=['assignment', 'created_at']),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.name} - {self.assignment.title}"
+    
+    def get_submission(self):
+        """Get the submission for this group if it exists."""
+        return self.submissions.first()
+
+
+class GroupQuestionnaire(models.Model):
+    """
+    Questionnaire model for peer review after group assignments.
+    Each student in a group completes their own questionnaire.
+    """
+    group = models.ForeignKey(
+        AssignmentGroup,
+        on_delete=models.CASCADE,
+        related_name='questionnaires',
+    )
+    student = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='group_questionnaires',
+    )
+    
+    # Rating fields (1-5 scale)
+    group_satisfaction = models.IntegerField(
+        choices=[(i, i) for i in range(1, 6)],
+        help_text="Satisfaction with group work (1-5)"
+    )
+    own_contribution = models.IntegerField(
+        choices=[(i, i) for i in range(1, 6)],
+        help_text="Rating of own contribution (1-5)"
+    )
+    
+    # Optional text fields
+    assignment_opinion = models.TextField(
+        blank=True,
+        help_text="Brief opinion on the assignment (optional)"
+    )
+    recommendations = models.TextField(
+        blank=True,
+        help_text="Recommendations (optional)"
+    )
+    
+    submitted_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    
+    class Meta:
+        verbose_name = 'Group Questionnaire'
+        verbose_name_plural = 'Group Questionnaires'
+        unique_together = [['group', 'student']]
+        ordering = ['-submitted_at']
+        indexes = [
+            models.Index(fields=['group', 'student']),
+            models.Index(fields=['group', 'submitted_at']),
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.student.username} - {self.group.name}"
 
 
 class FileShare(models.Model):

@@ -1,0 +1,510 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}Edit{% else %}Create{% endif %} Assignment - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="course-header">
+        <a href="{% if is_edit %}{% url 'assignments:assignment_detail' assignment.id %}{% else %}{% url 'courses:course_detail' course.id %}{% endif %}" class="back-link">&larr; Back{% if is_edit %} to Assignment{% else %} to Course{% endif %}</a>
+        <h1>{% if is_edit %}Edit Assignment{% else %}Create Assignment{% endif %}</h1>
+        <p class="course-instructor">Course: {{ course.title }}</p>
+    </div>
+    
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <div class="form-container">
+        <form method="post" class="assignment-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="{{ form.title.id_for_label }}">Assignment Title <span class="required">*</span></label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                    <div class="error-list">{{ form.title.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}">Description <span class="required">*</span></label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="error-list">{{ form.description.errors }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="{{ form.status.id_for_label }}">Status <span class="required">*</span></label>
+                    {{ form.status }}
+                    {% if form.status.errors %}
+                        <div class="error-list">{{ form.status.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.max_score.id_for_label }}">Max Score <span class="required">*</span></label>
+                    {{ form.max_score }}
+                    {% if form.max_score.errors %}
+                        <div class="error-list">{{ form.max_score.errors }}</div>
+                    {% endif %}
+                    {% if form.max_score.help_text %}
+                        <small class="help-text">{{ form.max_score.help_text }}</small>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.due_date.id_for_label }}">Due Date & Time</label>
+                {{ form.due_date }}
+                {% if form.due_date.errors %}
+                    <div class="error-list">{{ form.due_date.errors }}</div>
+                {% endif %}
+                {% if form.due_date.help_text %}
+                    <small class="help-text">{{ form.due_date.help_text }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.file.id_for_label }}">Attach File</label>
+                {{ form.file }}
+                {% if form.file.errors %}
+                    <div class="error-list">{{ form.file.errors }}</div>
+                {% endif %}
+                {% if form.file.help_text %}
+                    <small class="help-text">{{ form.file.help_text }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <div class="checkbox-group">
+                    {{ form.is_group_assignment }}
+                    <label for="{{ form.is_group_assignment.id_for_label }}" class="checkbox-label">
+                        Group Assignment
+                    </label>
+                </div>
+                {% if form.is_group_assignment.errors %}
+                    <div class="error-list">{{ form.is_group_assignment.errors }}</div>
+                {% endif %}
+                {% if form.is_group_assignment.help_text %}
+                    <small class="help-text">{{ form.is_group_assignment.help_text }}</small>
+                {% endif %}
+            </div>
+            
+            <div id="groups-section" class="groups-section" style="display: none;">
+                <h3>Create Groups</h3>
+                <p class="help-text">Add groups for this assignment. You can add more groups after creating the assignment.</p>
+                <div id="groups-container">
+                    <div class="group-form-item" data-group-index="0">
+                        <div class="group-form-row">
+                            <input type="text" name="group_names[]" class="form-control" placeholder="Group name (e.g., Group 1)" style="flex: 1;">
+                            <button type="button" class="btn btn-secondary remove-group-btn" style="display: none;">Remove</button>
+                        </div>
+                        <div class="students-selection">
+                            <label>Select Students:</label>
+                            <div class="students-checkboxes">
+                                {% for student in course_students %}
+                                <label class="student-checkbox">
+                                    <input type="checkbox" name="group_students_0[]" value="{{ student.id }}">
+                                    {{ student.get_full_name|default:student.username }}
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" id="add-group-btn" class="btn btn-secondary">Add Another Group</button>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">{% if is_edit %}Update Assignment{% else %}Create Assignment{% endif %}</button>
+                <a href="{% if is_edit %}{% url 'assignments:assignment_detail' assignment.id %}{% else %}{% url 'courses:course_detail' course.id %}{% endif %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+        {% if is_edit and assignment %}
+        <form method="post" action="{% url 'assignments:delete_assignment' assignment.id %}" style="display: inline-block; margin-top: 10px;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this assignment? This will remove all submissions and related data.');">
+                Delete Assignment
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .course-header {
+        margin-bottom: 40px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #eee;
+    }
+    
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #007bff;
+        text-decoration: none;
+    }
+    
+    .back-link:hover {
+        text-decoration: underline;
+    }
+    
+    .course-header h1 {
+        margin: 10px 0;
+    }
+    
+    .course-instructor {
+        color: #666;
+        font-size: 1.1em;
+        margin: 10px 0;
+    }
+    
+    .form-container {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .assignment-form {
+        max-width: 100%;
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .required {
+        color: #dc3545;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1em;
+        transition: border-color 0.3s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+    
+    .form-control[type="datetime-local"] {
+        font-family: inherit;
+    }
+    
+    textarea.form-control {
+        resize: vertical;
+        min-height: 120px;
+    }
+    
+    .help-text {
+        display: block;
+        margin-top: 5px;
+        font-size: 0.875em;
+        color: #666;
+    }
+    
+    .error-list {
+        margin-top: 5px;
+        color: #dc3545;
+        font-size: 0.875em;
+    }
+    
+    .error-list ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        font-size: 1em;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: background-color 0.3s;
+    }
+    
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #545b62;
+    }
+    
+    .messages {
+        margin-bottom: 20px;
+    }
+    
+    .alert {
+        padding: 12px 20px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+    
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .checkbox-label {
+        font-weight: normal;
+        margin: 0;
+        cursor: pointer;
+    }
+    
+    .form-check-input {
+        margin: 0;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    
+    .groups-section {
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 25px;
+        margin-top: 20px;
+    }
+    
+    .groups-section h3 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        color: #333;
+    }
+    
+    .group-form-item {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 20px;
+        margin-bottom: 15px;
+    }
+    
+    .group-form-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .students-selection {
+        margin-top: 15px;
+    }
+    
+    .students-selection label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .students-checkboxes {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 15px;
+        max-height: 200px;
+        overflow-y: auto;
+        background: #fff;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 10px;
+    }
+    
+    .student-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: normal;
+        cursor: pointer;
+    }
+    
+    .student-checkbox input[type="checkbox"] {
+        margin: 0;
+        cursor: pointer;
+    }
+    
+    #add-group-btn {
+        margin-top: 10px;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const groupCheckbox = document.getElementById('id_is_group_assignment');
+    const groupsSection = document.getElementById('groups-section');
+    const groupsContainer = document.getElementById('groups-container');
+    const addGroupBtn = document.getElementById('add-group-btn');
+    let groupCounter = 1;
+    
+    // Show/hide groups section based on checkbox
+    function toggleGroupsSection() {
+        if (groupCheckbox.checked) {
+            groupsSection.style.display = 'block';
+            setGroupNamesRequired(true);
+        } else {
+            groupsSection.style.display = 'none';
+            setGroupNamesRequired(false);
+        }
+    }
+    
+    groupCheckbox.addEventListener('change', toggleGroupsSection);
+    
+    // Initialize visibility
+    toggleGroupsSection();
+    
+    // Add new group form
+    addGroupBtn.addEventListener('click', function() {
+        const newGroup = document.createElement('div');
+        newGroup.className = 'group-form-item';
+        newGroup.setAttribute('data-group-index', groupCounter);
+        
+        let studentsHTML = '';
+        {% for student in course_students %}
+        studentsHTML += `
+            <label class="student-checkbox">
+                <input type="checkbox" name="group_students_${groupCounter}[]" value="{{ student.id }}">
+                {{ student.get_full_name|default:student.username }}
+            </label>
+        `;
+        {% endfor %}
+        
+        newGroup.innerHTML = `
+            <div class="group-form-row">
+                <input type="text" name="group_names[]" class="form-control" placeholder="Group name (e.g., Group ${groupCounter + 1})" style="flex: 1;">
+                <button type="button" class="btn btn-secondary remove-group-btn">Remove</button>
+            </div>
+            <div class="students-selection">
+                <label>Select Students:</label>
+                <div class="students-checkboxes">
+                    ${studentsHTML}
+                </div>
+            </div>
+        `;
+        groupsContainer.appendChild(newGroup);
+        groupCounter++;
+        updateRemoveButtons();
+        // Apply required if group assignment is checked
+        if (groupCheckbox.checked) {
+            newGroup.querySelector('input[name="group_names[]"]').required = true;
+        }
+        
+        // Add remove functionality
+        newGroup.querySelector('.remove-group-btn').addEventListener('click', function() {
+            if (groupsContainer.children.length > 1) {
+                newGroup.remove();
+                updateRemoveButtons();
+            } else {
+                alert('You must have at least one group.');
+            }
+        });
+    });
+    
+    // Add remove functionality to existing groups
+    document.querySelectorAll('.remove-group-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (groupsContainer.children.length > 1) {
+                this.closest('.group-form-item').remove();
+                updateRemoveButtons();
+            } else {
+                alert('You must have at least one group.');
+            }
+        });
+    });
+    
+    // Show remove button if there's more than one group
+    function updateRemoveButtons() {
+        const removeButtons = document.querySelectorAll('.remove-group-btn');
+        removeButtons.forEach(btn => {
+            if (groupsContainer.children.length > 1) {
+                btn.style.display = 'inline-block';
+            } else {
+                btn.style.display = 'none';
+            }
+        });
+    }
+    
+    function setGroupNamesRequired(isRequired) {
+        document.querySelectorAll('input[name="group_names[]"]').forEach(input => {
+            input.required = isRequired;
+        });
+    }
+
+    updateRemoveButtons();
+    // Initialize required state based on initial checkbox
+    setGroupNamesRequired(groupCheckbox.checked);
+});
+</script>
+{% endblock %}

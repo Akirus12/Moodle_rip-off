@@ -7,7 +7,11 @@ import os
 import re
 import zipfile
 from typing import Tuple, Optional
-import magic
+try:
+    import magic
+    MAGIC_AVAILABLE = True
+except ImportError:
+    MAGIC_AVAILABLE = False
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 
@@ -138,11 +142,15 @@ def get_mime_type(file_bytes: bytes) -> str:
     Returns:
         MIME type string
     """
-    try:
-        mime = magic.Magic(mime=True)
-        return mime.from_buffer(file_bytes)
-    except Exception:
-        # Fallback to generic binary type
+    if MAGIC_AVAILABLE:
+        try:
+            mime = magic.Magic(mime=True)
+            return mime.from_buffer(file_bytes)
+        except Exception:
+            # Fallback to generic binary type
+            return 'application/octet-stream'
+    else:
+        # Fallback to generic binary type if magic is not available
         return 'application/octet-stream'
 
 
