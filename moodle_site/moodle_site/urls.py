@@ -7,7 +7,7 @@ from home.views import auth_panel, home, logout_view
 
 urlpatterns = [
     path("", include("administrating.urls")),
-    path("admin/", admin.site.urls),
+    path("adminDefault/", admin.site.urls),
     path("login/", auth_panel, name="login"),
     path("logout/", logout_view, name="logout"),
     path("", home, name="home"),
@@ -15,6 +15,5 @@ urlpatterns = [
     # Core file management
     path("", include("core.urls")),
     path("messages/", include("messaging.urls", namespace="messaging")),
-    path("courses/", include("courses.urls")),
-    path("administrating/", include("administrating.urls")) 
+    path("courses/", include("courses.urls"))
 ]

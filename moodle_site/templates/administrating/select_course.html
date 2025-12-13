@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Select Course{% endblock %}
+
+{% block content %}
+<h2>Select Course</h2>
+
+<ul class="course-list">
+  {% for course in courses %}
+    <li>
+      {% if action == "enrollment" %}
+        <a href="{% url 'course_report' course.id %}">
+          {{ course.title }}
+        </a>
+      {% elif action == "grades" %}
+        <a href="{% url 'export_grades' course.id %}">
+          {{ course.title }}
+        </a>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
+{% endblock %}
