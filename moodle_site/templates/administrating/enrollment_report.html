@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Enrollment Report{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <h2>Course Enrollment Report</h2>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Course</th>
+        <th>Enrolled Students</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for course in courses %}
+      <tr>
+        <td>{{ course.code }} – {{ course.name }}</td>
+        <td>{{ course.student_count }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -1,12 +1,13 @@
 from django.urls import path
 from . import views
 
+app_name = "administrating"
+
 urlpatterns = [
-    path("admin/", views.admin_dashboard, name="administrating_dashboard"),
-    path("admin/users/delete/<int:user_id>/", views.delete_user, name="delete_user"),
-    path("admin/reports/courses/", views.course_report, name="course_report"),
-    path("admin/reports/course/<int:course_id>/", views.course_report, name="course_report"),
-    path("admin/reports/courses/export/", views.export_course_report, name="export_course_report"),
-    path("admin/reports/select/<str:action>/", views.select_course, name="select_course"),
-    path("admin/reports/grades/<int:course_id>/", views.export_grades, name="export_grades"),
+    path("admin/", views.dashboard, name="dashboard"),
+    path("admin/users/", views.user_list, name="user_list"),
+    path("admin/users/<int:pk>/", views.user_detail, name="user_detail"),
+    path("admin/users/<int:pk>/delete/", views.user_delete, name="user_delete"),
+    path("admin/reports/enrollments/", views.enrollment_report, name="enrollment_report"),
+    path("admin/reports/grades/", views.grade_statistics, name="grade_statistics"),
 ]

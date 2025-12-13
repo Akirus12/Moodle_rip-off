@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}User Details{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <h2>{{ target_user.username }}</h2>
+
+  <p>Email: {{ target_user.email }}</p>
+  <p>Role: {{ target_user.get_role_display }}</p>
+  <p>Active: {{ target_user.is_active }}</p>
+
+  <h3>Enrollments</h3>
+  <ul>
+    {% for enrollment in enrollments %}
+      <li>{{ enrollment.course.code }} – {{ enrollment.course.name }}</li>
+    {% empty %}
+      <li>No enrollments.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}
