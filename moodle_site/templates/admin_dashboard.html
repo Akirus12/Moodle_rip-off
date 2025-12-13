@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Admin | Moodle Lite{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+
+  <h2>Admin Dashboard</h2>
+
+  <!-- USERS -->
+  <section class="card">
+    <h3>Users</h3>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td>{{ user.id }}</td>
+          <td>{{ user.email }}</td>
+          <td>
+            {% if user.is_superuser %}Admin
+            {% elif user.is_staff %}Staff
+            {% else %}User{% endif %}
+          </td>
+          <td>
+            <form method="post" action="{% url 'delete_user' user.id %}">
+              {% csrf_token %}
+              <button class="btn btn-danger btn-small">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <!-- COURSES -->
+  <section class="card">
+    <h3>Courses</h3>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Instructor</th>
+          <th>Active</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for course in courses %}
+        <tr>
+          <td>{{ course.title }}</td>
+          <td>{{ course.instructor.email }}</td>
+          <td>{{ course.is_active }}</td>
+          <td>{{ course.created_at|date:"Y-m-d" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <!-- REPORTS -->
+  <section class="card">
+    <h3>Reports</h3>
+    <a href="{% url 'course_report' %}" class="btn">View Course Report</a>
+    <a href="{% url 'export_course_report' %}" class="btn btn-primary">
+      Export CSV
+    </a>
+  </section>
+
+</div>
+{% endblock %}
