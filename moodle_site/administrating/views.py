@@ -1,19 +1,103 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
-from django.db.models import Count
+from django.db.models import Prefetch, Count
 from django.views.decorators.http import require_http_methods
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
-import csv, random, reportlab
 from django.contrib import messages
-from statistics import mean
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
-from django.db.models import Prefetch
+from core.models import Course, UserCourse, Assignment
+from openpyxl import Workbook
+from statistics import mean
+import csv, random, reportlab
 
 from core.models import User, Course, UserCourse, Role, Assignment
+
+
+def export_grades_pdf(courses, mode):
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="grade_statistics.pdf"'
+
+    c = canvas.Canvas(response, pagesize=A4)
+    width, height = A4
+
+    y = height - 2 * cm
+
+    # Title
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(2 * cm, y, "Grade Statistics Report")
+    y -= 1.2 * cm
+
+    c.setFont("Helvetica", 10)
+    c.drawString(2 * cm, y, f"Grade generation mode: {mode}")
+    y -= 1 * cm
+
+    for course in courses:
+        if course.student_count == 0:
+            continue
+
+        # Page break safety
+        if y < 4 * cm:
+            c.showPage()
+            c.setFont("Helvetica", 10)
+            y = height - 2 * cm
+
+        # Course header
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(
+            2 * cm,
+            y,
+            f"{course.code} – {course.name}",
+        )
+        y -= 0.6 * cm
+
+        c.setFont("Helvetica", 10)
+        c.drawString(
+            2 * cm,
+            y,
+            f"Enrolled students: {course.student_count}",
+        )
+        y -= 0.5 * cm
+
+        # Generate statistics once per course
+        stats = generate_mock_statistics(
+            course.assignments.all(),
+            course.student_count,
+            mode,
+        )
+
+        for s in stats:
+            if y < 3 * cm:
+                c.showPage()
+                c.setFont("Helvetica", 10)
+                y = height - 2 * cm
+
+            c.drawString(
+                2.5 * cm,
+                y,
+                f"Assignment: {s['assignment'].title}",
+            )
+            y -= 0.4 * cm
+
+            c.drawString(
+                3 * cm,
+                y,
+                f"Avg: {s['avg']} | "
+                f"Min: {s['min']} | "
+                f"Max: {s['max']} | "
+                f"Max score: {s['assignment'].max_score}",
+            )
+            y -= 0.5 * cm
+
+        y -= 0.6 * cm
+
+    c.showPage()
+    c.save()
+
+    return response
 
 def admin_required(view):
     def wrapper(request, *args, **kwargs):
@@ -271,3 +355,143 @@ def grade_statistics_pdf(request):
     c.save()
 
     return response
+
+
+def generate_mock_statistics(assignments, student_count, mode):
+    stats = []
+
+    for assignment in assignments:
+        max_score = float(assignment.max_score)
+
+        if mode == "passing_bias":
+            grades = [
+                round(random.triangular(max_score * 0.5, max_score, max_score * 0.75), 2)
+                for _ in range(student_count)
+            ]
+        else:
+            grades = [
+                round(random.uniform(0, max_score), 2)
+                for _ in range(student_count)
+            ]
+
+        stats.append({
+            "assignment": assignment,
+            "avg": round(mean(grades), 2),
+            "min": round(min(grades), 2),
+            "max": round(max(grades), 2),
+        })
+
+    return stats
+
+
+@login_required
+@admin_required
+def grade_export_options(request):
+    return render(request, "administrating/grade_export_options.html")
+
+
+@login_required
+@admin_required
+def grade_statistics_export(request):
+    export_format = request.GET.get("format", "pdf")
+    mode = request.GET.get("mode", "uniform")
+
+    courses = (
+        Course.objects
+        .annotate(student_count=Count("enrollments"))
+        .prefetch_related("assignments")
+        .order_by("code")
+    )
+
+    if export_format == "csv":
+        return export_grades_csv(courses, mode)
+
+    if export_format == "xlsx":
+        return export_grades_xlsx(courses, mode)
+
+    return export_grades_pdf(courses, mode)
+
+
+def export_grades_csv(courses, mode):
+    response = HttpResponse(
+        content_type="text/csv",
+        headers={
+            "Content-Disposition": 'attachment; filename="grade_statistics.csv"'
+        },
+    )
+
+    writer = csv.writer(response)
+    writer.writerow([
+        "Course Code",
+        "Assignment",
+        "Average",
+        "Minimum",
+        "Maximum",
+        "Max Score",
+    ])
+
+    for course in courses:
+        if course.student_count == 0:
+            continue
+
+        stats = generate_mock_statistics(
+            course.assignments.all(),
+            course.student_count,
+            mode,
+        )
+
+        for s in stats:
+            writer.writerow([
+                course.code,
+                s["assignment"].title,
+                s["avg"],
+                s["min"],
+                s["max"],
+                s["assignment"].max_score,
+            ])
+
+    return response
+
+
+def export_grades_xlsx(courses, mode):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Grade statistics"
+
+    ws.append([
+        "Course Code",
+        "Assignment",
+        "Average",
+        "Minimum",
+        "Maximum",
+        "Max Score",
+    ])
+
+    for course in courses:
+        if course.student_count == 0:
+            continue
+
+        stats = generate_mock_statistics(
+            course.assignments.all(),
+            course.student_count,
+            mode,
+        )
+
+        for s in stats:
+            ws.append([
+                course.code,
+                s["assignment"].title,
+                s["avg"],
+                s["min"],
+                s["max"],
+                float(s["assignment"].max_score),
+            ])
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="grade_statistics.xlsx"'
+    wb.save(response)
+    return response
+
+

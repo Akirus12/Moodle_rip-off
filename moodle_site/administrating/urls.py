@@ -10,7 +10,9 @@ urlpatterns = [
     path("admin/users/<int:pk>/edit/", views.user_edit, name="user_edit"),
     path("admin/users/<int:pk>/delete/", views.user_delete, name="user_delete"),
     path("admin/reports/enrollments/", views.enrollment_report, name="enrollment_report"),
-    path("admin/reports/grades/", views.grade_statistics, name="grade_statistics"),
+    # path("admin/reports/grades/", views.grade_statistics, name="grade_statistics"),
     path("admin/reports/enrollments/export/", views.enrollment_report_csv, name="enrollment_report_csv"),
-    path("admin/reports/grades/export/", views.grade_statistics_pdf, name="grade_statistics_pdf"),
+    # path("admin/reports/grades/export/", views.grade_statistics_pdf, name="grade_statistics_pdf"),
+    path("admin/reports/grades/", views.grade_export_options, name="grade_export_options"),
+    path("admin/reports/grades/export/", views.grade_statistics_export, name="grade_statistics_export"),
 ]

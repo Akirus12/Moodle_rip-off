@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Export Grade Statistics{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <h2>Export Grade Statistics</h2>
+
+  <form method="get" action="{% url 'administrating:grade_statistics_export' %}">
+    <div class="form-field">
+      <label for="format">Export format</label>
+      <select name="format" id="format" required>
+        <option value="pdf">PDF</option>
+        <option value="csv">CSV</option>
+        <option value="xlsx">Excel (XLSX)</option>
+      </select>
+    </div>
+
+    <div class="form-field">
+      <label for="mode">Grade distribution</label>
+      <select name="mode" id="mode">
+        <option value="uniform">Uniform random</option>
+        <option value="passing_bias">Passing-biased</option>
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+      Export
+    </button>
+  </form>
+</section>
+{% endblock %}
