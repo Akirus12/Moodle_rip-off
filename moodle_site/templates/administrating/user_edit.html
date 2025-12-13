@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Edit User{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <h2>Edit user: {{ target_user.username }}</h2>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="form-field">
+      <label for="username">Username</label>
+      <input
+        type="text"
+        id="username"
+        name="username"
+        value="{{ target_user.username }}"
+        required
+      >
+    </div>
+
+    <div class="form-field">
+      <label for="email">Email</label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        value="{{ target_user.email }}"
+      >
+    </div>
+
+    <div class="form-field">
+      <label for="role">Role</label>
+      <select name="role" id="role">
+        {% for value, label in roles %}
+          <option value="{{ value }}"
+            {% if target_user.role == value %}selected{% endif %}>
+            {{ label }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+      Save changes
+    </button>
+  </form>
+</section>
+{% endblock %}

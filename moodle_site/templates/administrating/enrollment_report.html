@@ -21,5 +21,9 @@
       {% endfor %}
     </tbody>
   </table>
+  <a href="{% url 'administrating:enrollment_report_csv' %}"
+   class="btn btn-primary">
+  Export CSV
+  </a>
 </section>
 {% endblock %}

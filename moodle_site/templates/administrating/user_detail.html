@@ -17,5 +17,8 @@
       <li>No enrollments.</li>
     {% endfor %}
   </ul>
+  <a href="{% url 'administrating:user_edit' target_user.pk %}">
+    Edit user
+  </a>
 </section>
 {% endblock %}
