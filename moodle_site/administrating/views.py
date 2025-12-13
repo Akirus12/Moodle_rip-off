@@ -5,10 +5,15 @@ from django.db.models import Count
 from django.views.decorators.http import require_http_methods
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
-import csv
+import csv, random, reportlab
 from django.contrib import messages
+from statistics import mean
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.pdfgen import canvas
+from django.db.models import Prefetch
 
-from core.models import User, Course, UserCourse, Role
+from core.models import User, Course, UserCourse, Role, Assignment
 
 def admin_required(view):
     def wrapper(request, *args, **kwargs):
@@ -180,3 +185,89 @@ def enrollment_report_csv(request):
 def grade_statistics(request):
     # You don’t have grades yet → placeholder but DB-driven
     return render(request, "administrating/grade_statistics.html")
+
+
+@login_required
+@admin_required
+def grade_statistics_pdf(request):
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="grade_statistics.pdf"'
+
+    c = canvas.Canvas(response, pagesize=A4)
+    width, height = A4
+
+    y = height - 2 * cm
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(2 * cm, y, "Grade Statistics Report")
+    y -= 1.5 * cm
+
+    c.setFont("Helvetica", 10)
+
+    courses = (
+        Course.objects
+        .prefetch_related(
+            "assignments",
+            Prefetch(
+                "enrollments",
+                queryset=UserCourse.objects.filter(is_active=True),
+            ),
+        )
+        .order_by("code")
+    )
+
+    for course in courses:
+        enrollments = course.enrollments.all()
+        student_count = enrollments.count()
+
+        if student_count == 0:
+            continue
+
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(2 * cm, y, f"{course.code} – {course.name}")
+        y -= 0.7 * cm
+
+        c.setFont("Helvetica", 10)
+        c.drawString(2 * cm, y, f"Enrolled students: {student_count}")
+        y -= 0.5 * cm
+
+        for assignment in course.assignments.all():
+            # Generate mock grades
+            grades = [
+                round(random.uniform(0, float(assignment.max_score)), 2)
+                for _ in range(student_count)
+            ]
+
+            avg_grade = round(mean(grades), 2)
+            min_grade = round(min(grades), 2)
+            max_grade = round(max(grades), 2)
+
+            c.drawString(
+                2.5 * cm,
+                y,
+                f"Assignment: {assignment.title}",
+            )
+            y -= 0.4 * cm
+
+            c.drawString(
+                3 * cm,
+                y,
+                f"Avg: {avg_grade} / {assignment.max_score} | "
+                f"Min: {min_grade} | Max: {max_grade}",
+            )
+            y -= 0.5 * cm
+
+            if y < 3 * cm:
+                c.showPage()
+                c.setFont("Helvetica", 10)
+                y = height - 2 * cm
+
+        y -= 0.7 * cm
+        if y < 3 * cm:
+            c.showPage()
+            c.setFont("Helvetica", 10)
+            y = height - 2 * cm
+
+    c.showPage()
+    c.save()
+
+    return response

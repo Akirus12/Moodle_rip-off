@@ -12,4 +12,5 @@ urlpatterns = [
     path("admin/reports/enrollments/", views.enrollment_report, name="enrollment_report"),
     path("admin/reports/grades/", views.grade_statistics, name="grade_statistics"),
     path("admin/reports/enrollments/export/", views.enrollment_report_csv, name="enrollment_report_csv"),
+    path("admin/reports/grades/export/", views.grade_statistics_pdf, name="grade_statistics_pdf"),
 ]

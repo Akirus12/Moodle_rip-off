@@ -4,7 +4,17 @@
 {% block content %}
 <section class="panel">
   <h2>Grade Statistics</h2>
-  <p>No grading model implemented yet.</p>
-  <p>This page is ready to connect once assignments/grades exist.</p>
+
+  <p>
+    Grades are generated dynamically for demonstration purposes.
+    No grade records are stored.
+  </p>
+
+  <a
+    href="{% url 'administrating:grade_statistics_pdf' %}"
+    class="btn btn-primary"
+  >
+    Export PDF
+  </a>
 </section>
 {% endblock %}
