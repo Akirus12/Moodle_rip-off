@@ -31,6 +31,51 @@
             <p>No materials have been added to this course yet.</p>
         {% endif %}
     </div>
+
+    <div class="materials-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>Assignments</h2>
+            {% if request.user == course.instructor %}
+            <a href="{% url 'assignments:create_assignment' course.id %}" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.9em;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 5px;">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Create Assignment
+            </a>
+            {% endif %}
+        </div>
+        
+        {% if assignments %}
+            <div class="materials-list">
+                {% for assignment in assignments %}
+                    <div class="material-item">
+                        <div class="material-type-badge" style="background: #28a745;">Assignment</div>
+                        <h3><a href="{% url 'assignments:assignment_detail' assignment.id %}">{{ assignment.title }}</a></h3>
+                        {% if assignment.description %}
+                            <p>{{ assignment.description|truncatewords:20 }}</p>
+                        {% endif %}
+                        <div style="margin-top: 10px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                            {% if assignment.due_date %}
+                                <span style="color: #666; font-size: 0.9em;">
+                                    <strong>Due:</strong> {{ assignment.due_date|date:"M d, Y H:i" }}
+                                </span>
+                            {% endif %}
+                            <span style="color: #666; font-size: 0.9em;">
+                                <strong>Status:</strong> {{ assignment.get_status_display }}
+                            </span>
+                            <span style="color: #666; font-size: 0.9em;">
+                                <strong>Max Score:</strong> {{ assignment.max_score }}
+                            </span>
+                        </div>
+                        <a href="{% url 'assignments:assignment_detail' assignment.id %}" class="btn-small">View Assignment</a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No assignments have been added to this course yet.</p>
+        {% endif %}
+    </div>
 </div>
 
 <style>

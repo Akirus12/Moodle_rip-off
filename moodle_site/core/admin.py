@@ -88,7 +88,7 @@ class AssignmentAdmin(admin.ModelAdmin):
     """Assignment admin."""
     list_display = ['title', 'course', 'status', 'due_date', 'max_score']
     list_filter = ['status', 'course', 'due_date']
-    search_fields = ['title', 'description', 'course__code']
+    search_fields = ['title', 'description', 'course__title']
     date_hierarchy = 'due_date'
 
 

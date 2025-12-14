@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Assignments{% endblock %}
+
+{% block content %}
+<h2>Assignments</h2>
+<div style="margin-top: 20px; display:flex; gap:10px;">
+    <button onclick="window.location.href='{% url 'home' %}'">Back</button>
+</div>
+<p style="margin-top: 10px; color: #666;">To create an assignment, go to a course and use the "Create Assignment" button there.</p>
+<div class="assignment-list">
+    <div class="assignment-item" style="display:flex; justify-content:space-between; align-items:center; padding:8px 0;">
+        <a href="{% url 'assignments:assignment_detail' 1 %}">Placeholder Assignment Title</a>
+        <button onclick="window.location.href='{% url 'assignments:edit_assignment' 1 %}'">Edit</button>
+    </div>
+</div>
+
+<div style ="margin-top: 100px;">
+    <h1>THIS PAGE IS UNDER CONSTRUCTION</h1>
+</div>
+{% endblock %}

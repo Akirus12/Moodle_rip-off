@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}Grade Submission - {{ assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="assignment-header">
+        <a href="{% url 'assignments:view_submissions' assignment.id %}" class="back-link">&larr; Back to Submissions</a>
+        <h1>Grade Submission</h1>
+        <p class="course-info">Assignment: <a href="{% url 'assignments:assignment_detail' assignment.id %}">{{ assignment.title }}</a></p>
+        <p class="course-info">Student: <strong>{{ submission.student.get_full_name|default:submission.student.username }}</strong></p>
+    </div>
+    
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <div class="submission-details">
+        <div class="submission-info-card">
+            <h3>Submission Details</h3>
+            <p><strong>Submitted:</strong> {{ submission.submitted_at|date:"F d, Y g:i A" }}</p>
+            <p><strong>Files:</strong> {{ submission.files.count }} file(s)</p>
+            {% if submission.is_graded %}
+            <p><strong>Current Score:</strong> {{ submission.score }}/{{ assignment.max_score }}</p>
+            {% endif %}
+        </div>
+        
+        <div class="submission-files-card">
+            <h3>Submitted Files</h3>
+            <ul>
+                {% for file in submission.files.all %}
+                <li>
+                    <a href="{% url 'core:file_retrieve' file.id %}?download=true" target="_blank">
+                        {{ file.original_filename }}
+                    </a>
+                    <span class="file-size">({{ file.size|filesizeformat }})</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    
+    <div class="form-container">
+        <form method="post" class="grading-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="{{ form.score.id_for_label }}">Score <span class="required">*</span></label>
+                <div class="score-input-wrapper">
+                    {{ form.score }}
+                    <span class="max-score">/ {{ assignment.max_score }}</span>
+                </div>
+                {% if form.score.errors %}
+                    <div class="error-list">{{ form.score.errors }}</div>
+                {% endif %}
+                {% if form.score.help_text %}
+                    <small class="help-text">{{ form.score.help_text }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.feedback.id_for_label }}">Feedback</label>
+                {{ form.feedback }}
+                {% if form.feedback.errors %}
+                    <div class="error-list">{{ form.feedback.errors }}</div>
+                {% endif %}
+                {% if form.feedback.help_text %}
+                    <small class="help-text">{{ form.feedback.help_text }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save Grade</button>
+                <a href="{% url 'assignments:view_submissions' assignment.id %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .assignment-header {
+        margin-bottom: 40px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #eee;
+    }
+    
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #007bff;
+        text-decoration: none;
+        font-size: 0.95em;
+    }
+    
+    .back-link:hover {
+        text-decoration: underline;
+    }
+    
+    .assignment-header h1 {
+        margin: 10px 0;
+        color: #333;
+    }
+    
+    .course-info {
+        color: #666;
+        font-size: 1em;
+        margin: 5px 0;
+    }
+    
+    .course-info a {
+        color: #007bff;
+        text-decoration: none;
+    }
+    
+    .course-info a:hover {
+        text-decoration: underline;
+    }
+    
+    .submission-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    @media (max-width: 768px) {
+        .submission-details {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .submission-info-card,
+    .submission-files-card {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .submission-info-card h3,
+    .submission-files-card h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #333;
+        font-size: 1.2em;
+    }
+    
+    .submission-info-card p {
+        margin: 8px 0;
+        color: #555;
+    }
+    
+    .submission-files-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .submission-files-card li {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .submission-files-card li:last-child {
+        border-bottom: none;
+    }
+    
+    .submission-files-card a {
+        color: #007bff;
+        text-decoration: none;
+    }
+    
+    .submission-files-card a:hover {
+        text-decoration: underline;
+    }
+    
+    .file-size {
+        color: #666;
+        font-size: 0.9em;
+        margin-left: 10px;
+    }
+    
+    .form-container {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .required {
+        color: #dc3545;
+    }
+    
+    .score-input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .score-input-wrapper .form-control {
+        width: auto;
+        min-width: 120px;
+    }
+    
+    .max-score {
+        font-size: 1.1em;
+        color: #666;
+        font-weight: 600;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1em;
+        transition: border-color 0.3s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+    
+    textarea.form-control {
+        resize: vertical;
+        min-height: 150px;
+    }
+    
+    .help-text {
+        display: block;
+        margin-top: 5px;
+        font-size: 0.875em;
+        color: #666;
+    }
+    
+    .error-list {
+        margin-top: 5px;
+        color: #dc3545;
+        font-size: 0.875em;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        font-size: 1em;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: background-color 0.3s;
+    }
+    
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #545b62;
+    }
+    
+    .messages {
+        margin-bottom: 20px;
+    }
+    
+    .alert {
+        padding: 12px 20px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+    
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+</style>
+{% endblock %}
+
